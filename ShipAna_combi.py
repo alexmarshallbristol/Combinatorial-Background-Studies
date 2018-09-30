@@ -608,7 +608,7 @@
 #       pName = 'ecalClusters_unknown' 
 #      if not h.has_key(pName): ut.bookHist(h,pName,'x/y and energy for '+pName.split('_')[1],50,-3.,3.,50,-6.,6.)
 #      rc = h[pName].Fill(aClus.X()/u.m,aClus.Y()/u.m,aClus.Energy()/u.GeV)
-     
+					
 # # make some straw hit analysis
 #   hitlist = {}
 #   for ahit in sTree.strawtubesPoint:
@@ -820,7 +820,7 @@
 #  ecalFiller.StoreTrackInformation()
 #  ecalStructure = ecalFiller.InitPython(sTree.EcalPointLite)
 #  caloTasks.append(ecalFiller)
- 
+	
 #  if hasattr(sTree,"EcalReconstructed"):
 #   calReco = False
 #   ecalReconstructed = sTree.EcalReconstructed
@@ -887,6 +887,11 @@ from rootpyPickler import Unpickler
 from decorators import *
 import shipRoot_conf
 shipRoot_conf.configure()
+import numpy as np
+import matplotlib
+# Force matplotlib to not use any Xwindows backend.
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 debug = False
 chi2CutOff  = 4.
@@ -900,20 +905,20 @@ measCutFK = 25
 measCutPR = 22
 docaCut = 2.
 try:
-        opts, args = getopt.getopt(sys.argv[1:], "n:f:g:A:Y:i", ["nEvents=","geoFile="])
+								opts, args = getopt.getopt(sys.argv[1:], "n:f:g:A:Y:i", ["nEvents=","geoFile="])
 except getopt.GetoptError:
-        # print help information and exit:
-        print ' enter file name'
-        sys.exit()
+								# print help information and exit:
+								print ' enter file name'
+								sys.exit()
 for o, a in opts:
-        if o in ("-f",):
-            inputFile = a
-        if o in ("-g", "--geoFile",):
-            geoFile = a
-        if o in ("-Y",):
-            dy = float(a)
-        if o in ("-n", "--nEvents=",):
-            nEvents = int(a)
+								if o in ("-f",):
+												inputFile = a
+								if o in ("-g", "--geoFile",):
+												geoFile = a
+								if o in ("-Y",):
+												dy = float(a)
+								if o in ("-n", "--nEvents=",):
+												nEvents = int(a)
 eosship = ROOT.gSystem.Getenv("EOSSHIP")
 # if not inputFile.find(',')<0 :  
 #   sTree = ROOT.TChain("cbmsim")
@@ -957,7 +962,7 @@ modules = shipDet_conf.configure(run,ShipGeo)
 run.Init()
 import geomGeant4
 if hasattr(ShipGeo.Bfield,"fieldMap"):
-  fieldMaker = geomGeant4.addVMCFields(ShipGeo, '', True)
+		fieldMaker = geomGeant4.addVMCFields(ShipGeo, '', True)
 
 sGeo   = ROOT.gGeoManager
 geoMat =  ROOT.genfit.TGeoMaterialInterface()
@@ -969,8 +974,8 @@ fM.init(bfield)
 volDict = {}
 i=0
 for x in ROOT.gGeoManager.GetListOfVolumes():
- volDict[i]=x.GetName()
- i+=1
+	volDict[i]=x.GetName()
+	i+=1
 
 
 
@@ -1025,408 +1030,423 @@ import TrackExtrapolateTool
 
 def VertexError(t1,t2,PosDir,CovMat,scalFac):
 # with improved Vx x,y resolution
-   a,u = PosDir[t1]['position'],PosDir[t1]['direction']
-   c,v = PosDir[t2]['position'],PosDir[t2]['direction']
-   Vsq = v.Dot(v)
-   Usq = u.Dot(u)
-   UV  = u.Dot(v)
-   ca  = c-a
-   denom = Usq*Vsq-UV**2
-   tmp2 = Vsq*u-UV*v
-   Va = ca.Dot(tmp2)/denom
-   tmp2 = UV*u-Usq*v
-   Vb = ca.Dot(tmp2)/denom
-   X = (a+c+Va*u+Vb*v) * 0.5
-   l1 = a - X + u*Va  # l2 = c - X + v*Vb
-   dist = 2. * ROOT.TMath.Sqrt( l1.Dot(l1) )
-   T = ROOT.TMatrixD(3,12)
-   for i in range(3):
-     for k in range(4):
-       for j in range(3): 
-        KD = 0
-        if i==j: KD = 1
-        if k==0 or k==2:
-       # cova and covc
-         temp  = ( u[j]*Vsq - v[j]*UV )*u[i] + (u[j]*UV-v[j]*Usq)*v[i]
-         sign = -1
-         if k==2 : sign = +1
-         T[i][3*k+j] = 0.5*( KD + sign*temp/denom )
-        elif k==1:
-       # covu
-         aNAZ = denom*( ca[j]*Vsq-v.Dot(ca)*v[j] )
-         aZAN = ( ca.Dot(u)*Vsq-ca.Dot(v)*UV )*2*( u[j]*Vsq-v[j]*UV )
-         bNAZ = denom*( ca[j]*UV+(u.Dot(ca)*v[j]) - 2*ca.Dot(v)*u[j] )
-         bZAN = ( ca.Dot(u)*UV-ca.Dot(v)*Usq )*2*( u[j]*Vsq-v[j]*UV )
-         T[i][3*k+j] = 0.5*( Va*KD + u[i]/denom**2*(aNAZ-aZAN) + v[i]/denom**2*(bNAZ-bZAN) )
-        elif k==3:
-       # covv
-         aNAZ = denom*( 2*ca.Dot(u)*v[j] - ca.Dot(v)*u[j] - ca[j]*UV )
-         aZAN = ( ca.Dot(u)*Vsq-ca.Dot(v)*UV )*2*( v[j]*Usq-u[j]*UV )
-         bNAZ = denom*( ca.Dot(u)*u[j]-ca[j]*Usq ) 
-         bZAN = ( ca.Dot(u)*UV-ca.Dot(v)*Usq )*2*( v[j]*Usq-u[j]*UV )
-         T[i][3*k+j] = 0.5*(Vb*KD + u[i]/denom**2*(aNAZ-aZAN) + v[i]/denom**2*(bNAZ-bZAN) ) 
-   transT = ROOT.TMatrixD(12,3)
-   transT.Transpose(T)
-   CovTracks = ROOT.TMatrixD(12,12)
-   tlist = [t1,t2]
-   for k in range(2):
-     for i in range(6):
-       for j in range(6): 
-        xfac = 1.
-        if i>2: xfac = scalFac[tlist[k]]  
-        if j>2: xfac = xfac * scalFac[tlist[k]]
-        CovTracks[i+k*6][j+k*6] = CovMat[tlist[k]][i][j] * xfac
-        # if i==5 or j==5 :  CovMat[tlist[k]][i][j] = 0 # ignore error on z-direction
-   tmp   = ROOT.TMatrixD(3,12)
-   tmp.Mult(T,CovTracks)
-   covX  = ROOT.TMatrixD(3,3)
-   covX.Mult(tmp,transT)
-   return X,covX,dist
+			a,u = PosDir[t1]['position'],PosDir[t1]['direction']
+			c,v = PosDir[t2]['position'],PosDir[t2]['direction']
+			Vsq = v.Dot(v)
+			Usq = u.Dot(u)
+			UV  = u.Dot(v)
+			ca  = c-a
+			denom = Usq*Vsq-UV**2
+			tmp2 = Vsq*u-UV*v
+			Va = ca.Dot(tmp2)/denom
+			tmp2 = UV*u-Usq*v
+			Vb = ca.Dot(tmp2)/denom
+			X = (a+c+Va*u+Vb*v) * 0.5
+			l1 = a - X + u*Va  # l2 = c - X + v*Vb
+			dist = 2. * ROOT.TMath.Sqrt( l1.Dot(l1) )
+			T = ROOT.TMatrixD(3,12)
+			for i in range(3):
+					for k in range(4):
+							for j in range(3): 
+								KD = 0
+								if i==j: KD = 1
+								if k==0 or k==2:
+							# cova and covc
+									temp  = ( u[j]*Vsq - v[j]*UV )*u[i] + (u[j]*UV-v[j]*Usq)*v[i]
+									sign = -1
+									if k==2 : sign = +1
+									T[i][3*k+j] = 0.5*( KD + sign*temp/denom )
+								elif k==1:
+							# covu
+									aNAZ = denom*( ca[j]*Vsq-v.Dot(ca)*v[j] )
+									aZAN = ( ca.Dot(u)*Vsq-ca.Dot(v)*UV )*2*( u[j]*Vsq-v[j]*UV )
+									bNAZ = denom*( ca[j]*UV+(u.Dot(ca)*v[j]) - 2*ca.Dot(v)*u[j] )
+									bZAN = ( ca.Dot(u)*UV-ca.Dot(v)*Usq )*2*( u[j]*Vsq-v[j]*UV )
+									T[i][3*k+j] = 0.5*( Va*KD + u[i]/denom**2*(aNAZ-aZAN) + v[i]/denom**2*(bNAZ-bZAN) )
+								elif k==3:
+							# covv
+									aNAZ = denom*( 2*ca.Dot(u)*v[j] - ca.Dot(v)*u[j] - ca[j]*UV )
+									aZAN = ( ca.Dot(u)*Vsq-ca.Dot(v)*UV )*2*( v[j]*Usq-u[j]*UV )
+									bNAZ = denom*( ca.Dot(u)*u[j]-ca[j]*Usq ) 
+									bZAN = ( ca.Dot(u)*UV-ca.Dot(v)*Usq )*2*( v[j]*Usq-u[j]*UV )
+									T[i][3*k+j] = 0.5*(Vb*KD + u[i]/denom**2*(aNAZ-aZAN) + v[i]/denom**2*(bNAZ-bZAN) ) 
+			transT = ROOT.TMatrixD(12,3)
+			transT.Transpose(T)
+			CovTracks = ROOT.TMatrixD(12,12)
+			tlist = [t1,t2]
+			for k in range(2):
+					for i in range(6):
+							for j in range(6): 
+								xfac = 1.
+								if i>2: xfac = scalFac[tlist[k]]  
+								if j>2: xfac = xfac * scalFac[tlist[k]]
+								CovTracks[i+k*6][j+k*6] = CovMat[tlist[k]][i][j] * xfac
+								# if i==5 or j==5 :  CovMat[tlist[k]][i][j] = 0 # ignore error on z-direction
+			tmp   = ROOT.TMatrixD(3,12)
+			tmp.Mult(T,CovTracks)
+			covX  = ROOT.TMatrixD(3,3)
+			covX.Mult(tmp,transT)
+			return X,covX,dist
 
 from array import array
 def dist2InnerWall(X,Y,Z):
-  dist = 0
- # return distance to inner wall perpendicular to z-axis, if outside decayVolume return 0.
-  node = sGeo.FindNode(X,Y,Z)
-  if ShipGeo.tankDesign < 5:
-     if not 'cave' in node.GetName(): return dist  # TP 
-  else:
-     if not 'decayVol' in node.GetName(): return dist
-  start = array('d',[X,Y,Z])
-  nsteps = 8
-  dalpha = 2*ROOT.TMath.Pi()/nsteps
-  rsq = X**2+Y**2
-  minDistance = 100 *u.m
-  for n in range(nsteps):
-    alpha = n * dalpha
-    sdir  = array('d',[ROOT.TMath.Sin(alpha),ROOT.TMath.Cos(alpha),0.])
-    node = sGeo.InitTrack(start, sdir)
-    nxt = sGeo.FindNextBoundary()
-    if ShipGeo.tankDesign < 5 and nxt.GetName().find('I')<0: return 0    
-    distance = sGeo.GetStep()
-    if distance < minDistance  : minDistance = distance
-  return minDistance
+		dist = 0
+	# return distance to inner wall perpendicular to z-axis, if outside decayVolume return 0.
+		node = sGeo.FindNode(X,Y,Z)
+		if ShipGeo.tankDesign < 5:
+					if not 'cave' in node.GetName(): return dist  # TP 
+		else:
+					if not 'decayVol' in node.GetName(): return dist
+		start = array('d',[X,Y,Z])
+		nsteps = 8
+		dalpha = 2*ROOT.TMath.Pi()/nsteps
+		rsq = X**2+Y**2
+		minDistance = 100 *u.m
+		for n in range(nsteps):
+				alpha = n * dalpha
+				sdir  = array('d',[ROOT.TMath.Sin(alpha),ROOT.TMath.Cos(alpha),0.])
+				node = sGeo.InitTrack(start, sdir)
+				nxt = sGeo.FindNextBoundary()
+				if ShipGeo.tankDesign < 5 and nxt.GetName().find('I')<0: return 0    
+				distance = sGeo.GetStep()
+				if distance < minDistance  : minDistance = distance
+		return minDistance
 
 def isInFiducial(X,Y,Z):
-   if Z > ShipGeo.TrackStation1.z : return False
-   if Z < ShipGeo.vetoStation.z+100.*u.cm : return False
-   # typical x,y Vx resolution for exclusive HNL decays 0.3cm,0.15cm (gaussian width)
-   if dist2InnerWall(X,Y,Z)<5*u.cm: return False
-   return True 
+			if Z > ShipGeo.TrackStation1.z : return False
+			if Z < ShipGeo.vetoStation.z+100.*u.cm : return False
+			# typical x,y Vx resolution for exclusive HNL decays 0.3cm,0.15cm (gaussian width)
+			if dist2InnerWall(X,Y,Z)<5*u.cm: return False
+			return True 
 #
 def ImpactParameter(point,tPos,tMom):
-  t = 0
-  if hasattr(tMom,'P'): P = tMom.P()
-  else:                 P = tMom.Mag()
-  for i in range(3):   t += tMom(i)/P*(point(i)-tPos(i)) 
-  dist = 0
-  for i in range(3):   dist += (point(i)-tPos(i)-t*tMom(i)/P)**2
-  dist = ROOT.TMath.Sqrt(dist)
-  return dist
+		t = 0
+		if hasattr(tMom,'P'): P = tMom.P()
+		else:                 P = tMom.Mag()
+		for i in range(3):   t += tMom(i)/P*(point(i)-tPos(i)) 
+		dist = 0
+		for i in range(3):   dist += (point(i)-tPos(i)-t*tMom(i)/P)**2
+		dist = ROOT.TMath.Sqrt(dist)
+		return dist
 #
 def checkHNLorigin(sTree):
- flag = True
- if not fiducialCut: return flag
- flag = False
+	flag = True
+	if not fiducialCut: return flag
+	flag = False
 # only makes sense for signal == HNL
- hnlkey = -1
- for n in range(sTree.MCTrack.GetEntries()):
-   mo = sTree.MCTrack[n].GetMotherId()
-   if mo <0: continue
-   if abs(sTree.MCTrack[mo].GetPdgCode()) == 9900015: 
-       hnlkey = n
-       break
- if hnlkey<0 : 
-  print "checkHNLorigin: no HNL found"
- else:
-  # MCTrack after HNL should be first daughter
-  theHNLVx = sTree.MCTrack[hnlkey]
-  X,Y,Z =  theHNLVx.GetStartX(),theHNLVx.GetStartY(),theHNLVx.GetStartZ()
-  if isInFiducial(X,Y,Z): flag = True
- return flag 
+	hnlkey = -1
+	for n in range(sTree.MCTrack.GetEntries()):
+			mo = sTree.MCTrack[n].GetMotherId()
+			if mo <0: continue
+			if abs(sTree.MCTrack[mo].GetPdgCode()) == 9900015: 
+							hnlkey = n
+							break
+	if hnlkey<0 : 
+		print "checkHNLorigin: no HNL found"
+	else:
+		# MCTrack after HNL should be first daughter
+		theHNLVx = sTree.MCTrack[hnlkey]
+		X,Y,Z =  theHNLVx.GetStartX(),theHNLVx.GetStartY(),theHNLVx.GetStartZ()
+		if isInFiducial(X,Y,Z): flag = True
+	return flag 
 
 def checkFiducialVolume(sTree,tkey,dy):
 # extrapolate track to middle of magnet and check if in decay volume
-   inside = True
-   if not fiducialCut: return True
-   fT = sTree.FitTracks[tkey]
-   rc,pos,mom = TrackExtrapolateTool.extrapolateToPlane(fT,ShipGeo.Bfield.z)
-   if not rc: return False
-   if not dist2InnerWall(pos.X(),pos.Y(),pos.Z())>0: return False
-   return inside
+			inside = True
+			if not fiducialCut: return True
+			fT = sTree.FitTracks[tkey]
+			rc,pos,mom = TrackExtrapolateTool.extrapolateToPlane(fT,ShipGeo.Bfield.z)
+			if not rc: return False
+			if not dist2InnerWall(pos.X(),pos.Y(),pos.Z())>0: return False
+			return inside
 def getPtruthFirst(sTree,mcPartKey):
-   Ptruth,Ptruthx,Ptruthy,Ptruthz = -1.,-1.,-1.,-1.
-   for ahit in sTree.strawtubesPoint:
-     if ahit.GetTrackID() == mcPartKey:
-        Ptruthx,Ptruthy,Ptruthz = ahit.GetPx(),ahit.GetPy(),ahit.GetPz()
-        Ptruth  = ROOT.TMath.Sqrt(Ptruthx**2+Ptruthy**2+Ptruthz**2)
-        break
-   return Ptruth,Ptruthx,Ptruthy,Ptruthz
+			Ptruth,Ptruthx,Ptruthy,Ptruthz = -1.,-1.,-1.,-1.
+			for ahit in sTree.strawtubesPoint:
+					if ahit.GetTrackID() == mcPartKey:
+								Ptruthx,Ptruthy,Ptruthz = ahit.GetPx(),ahit.GetPy(),ahit.GetPz()
+								Ptruth  = ROOT.TMath.Sqrt(Ptruthx**2+Ptruthy**2+Ptruthz**2)
+								break
+			return Ptruth,Ptruthx,Ptruthy,Ptruthz
 
 def access2SmearedHits():
- key = 0
- for ahit in ev.SmearedHits.GetObject():
-   print ahit[0],ahit[1],ahit[2],ahit[3],ahit[4],ahit[5],ahit[6]
-   # follow link to true MCHit
-   mchit   = TrackingHits[key]
-   mctrack =  MCTracks[mchit.GetTrackID()]
-   print mchit.GetZ(),mctrack.GetP(),mctrack.GetPdgCode()
-   key+=1
+	key = 0
+	for ahit in ev.SmearedHits.GetObject():
+			print ahit[0],ahit[1],ahit[2],ahit[3],ahit[4],ahit[5],ahit[6]
+			# follow link to true MCHit
+			mchit   = TrackingHits[key]
+			mctrack =  MCTracks[mchit.GetTrackID()]
+			print mchit.GetZ(),mctrack.GetP(),mctrack.GetPdgCode()
+			key+=1
 
 def myVertex(t1,t2,PosDir):
- # closest distance between two tracks
-    # d = |pq . u x v|/|u x v|
-   a = ROOT.TVector3(PosDir[t1][0](0) ,PosDir[t1][0](1), PosDir[t1][0](2))
-   u = ROOT.TVector3(PosDir[t1][1](0),PosDir[t1][1](1),PosDir[t1][1](2))
-   c = ROOT.TVector3(PosDir[t2][0](0) ,PosDir[t2][0](1), PosDir[t2][0](2))
-   v = ROOT.TVector3(PosDir[t2][1](0),PosDir[t2][1](1),PosDir[t2][1](2))
-   pq = a-c
-   uCrossv = u.Cross(v)
-   dist  = pq.Dot(uCrossv)/(uCrossv.Mag()+1E-8)
-   # u.a - u.c + s*|u|**2 - u.v*t    = 0
-   # v.a - v.c + s*v.u    - t*|v|**2 = 0
-   E = u.Dot(a) - u.Dot(c) 
-   F = v.Dot(a) - v.Dot(c) 
-   A,B = u.Mag2(), -u.Dot(v) 
-   C,D = u.Dot(v), -v.Mag2()
-   t = -(C*E-A*F)/(B*C-A*D)
-   X = c.x()+v.x()*t
-   Y = c.y()+v.y()*t
-   Z = c.z()+v.z()*t
-   return X,Y,Z,abs(dist)
+	# closest distance between two tracks
+				# d = |pq . u x v|/|u x v|
+			# print(' ')
+			# print('myvertex',PosDir)
+			# print(np.shape(PosDir))
+			# print(PosDir[0])
+			# print(PosDir[0][0])
+			a = ROOT.TVector3(PosDir[0][0](0) ,PosDir[0][0](1), PosDir[0][0](2))
+			u = ROOT.TVector3(PosDir[0][1](0),PosDir[0][1](1),PosDir[0][1](2))
+			c = ROOT.TVector3(PosDir[1][0](0) ,PosDir[1][0](1), PosDir[1][0](2))
+			v = ROOT.TVector3(PosDir[1][1](0),PosDir[1][1](1),PosDir[1][1](2))
+			pq = a-c
+			uCrossv = u.Cross(v)
+			dist  = pq.Dot(uCrossv)/(uCrossv.Mag()+1E-8)
+			# u.a - u.c + s*|u|**2 - u.v*t    = 0
+			# v.a - v.c + s*v.u    - t*|v|**2 = 0
+			E = u.Dot(a) - u.Dot(c) 
+			F = v.Dot(a) - v.Dot(c) 
+			A,B = u.Mag2(), -u.Dot(v) 
+			C,D = u.Dot(v), -v.Mag2()
+			t = -(C*E-A*F)/(B*C-A*D)
+			X = c.x()+v.x()*t
+			Y = c.y()+v.y()*t
+			Z = c.z()+v.z()*t
+			return X,Y,Z,abs(dist)
 def  RedoVertexing(t1,t2):    
-     PosDir = {} 
-     for tr in [t1,t2]:
-      xx  = sTree.FitTracks[tr].getFittedState()
-      PosDir[tr] = [xx.getPos(),xx.getDir()]
-     xv,yv,zv,doca = myVertex(t1,t2,PosDir)
+					PosDir = [] 
+					for tr in [t1,t2]:
+						xx  = tr
+						# help(xx)
+						# PosDir[tr] = [xx.getPos(),xx.getDir()]
+						# print(xx.getPos()[0])
+						PosDir.append([xx.getPos(),xx.getDir()])
+					# print(PosDir)
+					# PosDir[0] = [t1.getPos(),t1.getDir()]
+					# PosDir[1] = [t2.getPos(),t2.getDir()]
+					# print('here',PosDir)
+					xv,yv,zv,doca = myVertex(t1,t2,PosDir)
 # as we have learned, need iterative procedure
-     dz = 99999.
-     reps,states,newPosDir = {},{},{}
-     parallelToZ = ROOT.TVector3(0., 0., 1.)
-     rc = True 
-     step = 0
-     while dz > 0.1:
-      zBefore = zv
-      newPos = ROOT.TVector3(xv,yv,zv)
-     # make a new rep for track 1,2
-      for tr in [t1,t2]:     
-       xx = sTree.FitTracks[tr].getFittedState()
-       reps[tr]   = ROOT.genfit.RKTrackRep(xx.getPDG())
-       states[tr] = ROOT.genfit.StateOnPlane(reps[tr])
-       reps[tr].setPosMom(states[tr],xx.getPos(),xx.getMom())
-       try:
-        reps[tr].extrapolateToPoint(states[tr], newPos, False)
-       except:
-        print 'SHiPAna: extrapolation did not worked'
-        rc = False  
-        break
-       newPosDir[tr] = [reps[tr].getPos(states[tr]),reps[tr].getDir(states[tr])]
-      if not rc: break
-      xv,yv,zv,doca = myVertex(t1,t2,newPosDir)
-      dz = abs(zBefore-zv)
-      step+=1
-      if step > 10:  
-         print 'abort iteration, too many steps, pos=',xv,yv,zv,' doca=',doca,'z before and dz',zBefore,dz
-         rc = False
-         break 
-     if not rc: return xv,yv,zv,doca,-1 # extrapolation failed, makes no sense to continue
-     LV={}
-     for tr in [t1,t2]:       
-      mom = reps[tr].getMom(states[tr])
-      pid = abs(states[tr].getPDG()) 
-      if pid == 2212: pid = 211
-      mass = PDG.GetParticle(pid).Mass()
-      E = ROOT.TMath.Sqrt( mass*mass + mom.Mag2() )
-      LV[tr] = ROOT.TLorentzVector()
-      LV[tr].SetPxPyPzE(mom.x(),mom.y(),mom.z(),E)
-     HNLMom = LV[t1]+LV[t2]
-     return xv,yv,zv,doca,HNLMom
+					dz = 99999.
+					reps,states,newPosDir = {},{},{}
+					newPosDir = []
+					parallelToZ = ROOT.TVector3(0., 0., 1.)
+					rc = True 
+					step = 0
+					while dz > 0.1:
+						zBefore = zv
+						newPos = ROOT.TVector3(xv,yv,zv)
+					# make a new rep for track 1,2
+						for tr in [t1,t2]:     
+							xx = tr
+							reps[tr]   = ROOT.genfit.RKTrackRep(xx.getPDG())
+							states[tr] = ROOT.genfit.StateOnPlane(reps[tr])
+							reps[tr].setPosMom(states[tr],xx.getPos(),xx.getMom())
+							try:
+								reps[tr].extrapolateToPoint(states[tr], newPos, False)
+							except:
+								print 'SHiPAna: extrapolation did not work'
+								rc = False  
+								break
+							# help(reps[tr].getPos(states[tr]))
+							# print(reps[tr].getPos(states[tr]))
+							# print(reps[tr].getPos(states[tr])[0])
+							# print(float(reps[tr].getPos(states[tr])[0]))
+
+							# newPosDir[tr] = [reps[tr].getPos(states[tr]),reps[tr].getDir(states[tr])]
+
+							# newPosDir.append([float(reps[tr].getPos(states[tr])[0]),float(reps[tr].getPos(states[tr])[1]),float(reps[tr].getPos(states[tr])[2]),float(reps[tr].getDir(states[tr])[0]),float(reps[tr].getDir(states[tr])[1]),float(reps[tr].getDir(states[tr])[2])])
+							newPosDir.append([reps[tr].getPos(states[tr]),reps[tr].getDir(states[tr])])
+							# print('newposdir',newPosDir)
+						if not rc: break
+						xv,yv,zv,doca = myVertex(t1,t2,newPosDir)
+						dz = abs(zBefore-zv)
+						step+=1
+						if step > 10:  
+									print 'abort iteration, too many steps, pos=',xv,yv,zv,' doca=',doca,'z before and dz',zBefore,dz
+									rc = False
+									break 
+					if not rc: return xv,yv,zv,doca # extrapolation failed, makes no sense to continue
+			
+					return xv,yv,zv,doca
+
+
 def fitSingleGauss(x,ba=None,be=None):
-    name    = 'myGauss_'+x 
-    myGauss = h[x].GetListOfFunctions().FindObject(name)
-    if not myGauss:
-       if not ba : ba = h[x].GetBinCenter(1) 
-       if not be : be = h[x].GetBinCenter(h[x].GetNbinsX()) 
-       bw    = h[x].GetBinWidth(1) 
-       mean  = h[x].GetMean()
-       sigma = h[x].GetRMS()
-       norm  = h[x].GetEntries()*0.3
-       myGauss = ROOT.TF1(name,'[0]*'+str(bw)+'/([2]*sqrt(2*pi))*exp(-0.5*((x-[1])/[2])**2)+[3]',4)
-       myGauss.SetParameter(0,norm)
-       myGauss.SetParameter(1,mean)
-       myGauss.SetParameter(2,sigma)
-       myGauss.SetParameter(3,1.)
-       myGauss.SetParName(0,'Signal')
-       myGauss.SetParName(1,'Mean')
-       myGauss.SetParName(2,'Sigma')
-       myGauss.SetParName(3,'bckgr')
-    h[x].Fit(myGauss,'','',ba,be) 
+				name    = 'myGauss_'+x 
+				myGauss = h[x].GetListOfFunctions().FindObject(name)
+				if not myGauss:
+							if not ba : ba = h[x].GetBinCenter(1) 
+							if not be : be = h[x].GetBinCenter(h[x].GetNbinsX()) 
+							bw    = h[x].GetBinWidth(1) 
+							mean  = h[x].GetMean()
+							sigma = h[x].GetRMS()
+							norm  = h[x].GetEntries()*0.3
+							myGauss = ROOT.TF1(name,'[0]*'+str(bw)+'/([2]*sqrt(2*pi))*exp(-0.5*((x-[1])/[2])**2)+[3]',4)
+							myGauss.SetParameter(0,norm)
+							myGauss.SetParameter(1,mean)
+							myGauss.SetParameter(2,sigma)
+							myGauss.SetParameter(3,1.)
+							myGauss.SetParName(0,'Signal')
+							myGauss.SetParName(1,'Mean')
+							myGauss.SetParName(2,'Sigma')
+							myGauss.SetParName(3,'bckgr')
+				h[x].Fit(myGauss,'','',ba,be) 
 
 def match2HNL(p):
-    matched = False
-    hnlKey  = []
-    for t in [p.GetDaughter(0),p.GetDaughter(1)]: 
-      mcp = sTree.fitTrack2MC[t]
-      while mcp > -0.5:
-        mo = sTree.MCTrack[mcp]
-        if abs(mo.GetPdgCode()) == 9900015:
-           hnlKey.append(mcp)
-           break  
-        mcp = mo.GetMotherId()
-    if len(hnlKey) == 2: 
-       if hnlKey[0]==hnlKey[1]: matched = True
-    return matched
+				matched = False
+				hnlKey  = []
+				for t in [p.GetDaughter(0),p.GetDaughter(1)]: 
+						mcp = sTree.fitTrack2MC[t]
+						while mcp > -0.5:
+								mo = sTree.MCTrack[mcp]
+								if abs(mo.GetPdgCode()) == 9900015:
+											hnlKey.append(mcp)
+											break  
+								mcp = mo.GetMotherId()
+				if len(hnlKey) == 2: 
+							if hnlKey[0]==hnlKey[1]: matched = True
+				return matched
 def ecalCluster2MC(aClus):
- # return MC track most contributing, and its fraction of energy
-  trackid    = ROOT.Long()
-  energy_dep = ROOT.Double()
-  mcLink = {}
-  for i in range( aClus.Size() ):
-    mccell = ecalStructure.GetHitCell(aClus.CellNum(i))  # Get i'th cell of the cluster.
-    for n in range( mccell.TrackEnergySize()):
-      mccell.GetTrackEnergySlow(n, trackid, energy_dep)
-      if not abs(trackid)<sTree.MCTrack.GetEntries(): tid = -1
-      else: tid = int(trackid)
-      if not mcLink.has_key(tid): mcLink[tid]=0
-      mcLink[tid]+=energy_dep
+	# return MC track most contributing, and its fraction of energy
+		trackid    = ROOT.Long()
+		energy_dep = ROOT.Double()
+		mcLink = {}
+		for i in range( aClus.Size() ):
+				mccell = ecalStructure.GetHitCell(aClus.CellNum(i))  # Get i'th cell of the cluster.
+				for n in range( mccell.TrackEnergySize()):
+						mccell.GetTrackEnergySlow(n, trackid, energy_dep)
+						if not abs(trackid)<sTree.MCTrack.GetEntries(): tid = -1
+						else: tid = int(trackid)
+						if not mcLink.has_key(tid): mcLink[tid]=0
+						mcLink[tid]+=energy_dep
 # find trackid most contributing
-  eMax,mMax = 0,-1
-  for m in mcLink:
-     if mcLink[m]>eMax:
-        eMax = mcLink[m]
-        mMax = m
-  return mMax,eMax/aClus.Energy()
+		eMax,mMax = 0,-1
+		for m in mcLink:
+					if mcLink[m]>eMax:
+								eMax = mcLink[m]
+								mMax = m
+		return mMax,eMax/aClus.Energy()
 
 def makePlots():
-   ut.bookCanvas(h,key='ecalanalysis',title='cluster map',nx=800,ny=600,cx=1,cy=1)
-   cv = h['ecalanalysis'].cd(1)
-   h['ecalClusters'].Draw('colz')
-   ut.bookCanvas(h,key='ecalCluster2Track',title='Ecal cluster distances to track impact',nx=1600,ny=800,cx=4,cy=2)
-   if h.has_key("ecalReconstructed_dist_mu+"):
-    cv = h['ecalCluster2Track'].cd(1)
-    h['ecalReconstructed_distx_mu+'].Draw()
-    cv = h['ecalCluster2Track'].cd(2)
-    h['ecalReconstructed_disty_mu+'].Draw()
-   if h.has_key("ecalReconstructed_dist_pi+"):
-    cv = h['ecalCluster2Track'].cd(3)
-    h['ecalReconstructed_distx_pi+'].Draw()
-    cv = h['ecalCluster2Track'].cd(4)
-    h['ecalReconstructed_disty_pi+'].Draw()
-   if h.has_key("ecalReconstructed_dist_mu-"):
-    cv = h['ecalCluster2Track'].cd(5)
-    h['ecalReconstructed_distx_mu-'].Draw()
-    cv = h['ecalCluster2Track'].cd(6)
-    h['ecalReconstructed_disty_mu-'].Draw()
-   if h.has_key("ecalReconstructed_dist_pi-"):
-    cv = h['ecalCluster2Track'].cd(7)
-    h['ecalReconstructed_distx_pi-'].Draw()
-    cv = h['ecalCluster2Track'].cd(8)
-    h['ecalReconstructed_disty_pi-'].Draw()
+			ut.bookCanvas(h,key='ecalanalysis',title='cluster map',nx=800,ny=600,cx=1,cy=1)
+			cv = h['ecalanalysis'].cd(1)
+			h['ecalClusters'].Draw('colz')
+			ut.bookCanvas(h,key='ecalCluster2Track',title='Ecal cluster distances to track impact',nx=1600,ny=800,cx=4,cy=2)
+			if h.has_key("ecalReconstructed_dist_mu+"):
+				cv = h['ecalCluster2Track'].cd(1)
+				h['ecalReconstructed_distx_mu+'].Draw()
+				cv = h['ecalCluster2Track'].cd(2)
+				h['ecalReconstructed_disty_mu+'].Draw()
+			if h.has_key("ecalReconstructed_dist_pi+"):
+				cv = h['ecalCluster2Track'].cd(3)
+				h['ecalReconstructed_distx_pi+'].Draw()
+				cv = h['ecalCluster2Track'].cd(4)
+				h['ecalReconstructed_disty_pi+'].Draw()
+			if h.has_key("ecalReconstructed_dist_mu-"):
+				cv = h['ecalCluster2Track'].cd(5)
+				h['ecalReconstructed_distx_mu-'].Draw()
+				cv = h['ecalCluster2Track'].cd(6)
+				h['ecalReconstructed_disty_mu-'].Draw()
+			if h.has_key("ecalReconstructed_dist_pi-"):
+				cv = h['ecalCluster2Track'].cd(7)
+				h['ecalReconstructed_distx_pi-'].Draw()
+				cv = h['ecalCluster2Track'].cd(8)
+				h['ecalReconstructed_disty_pi-'].Draw()
 
-   ut.bookCanvas(h,key='strawanalysis',title='Distance to wire and mean nr of hits',nx=1200,ny=600,cx=3,cy=1)
-   cv = h['strawanalysis'].cd(1)
-   h['disty'].Draw()
-   h['distu'].Draw('same')
-   h['distv'].Draw('same')
-   cv = h['strawanalysis'].cd(2)
-   h['meanhits'].Draw()
-   cv = h['strawanalysis'].cd(3)
-   h['meas2'].Draw()
-   ut.bookCanvas(h,key='fitresults',title='Fit Results',nx=1600,ny=1200,cx=2,cy=2)
-   cv = h['fitresults'].cd(1)
-   h['delPOverPz'].Draw('box')
-   cv = h['fitresults'].cd(2)
-   cv.SetLogy(1)
-   h['prob'].Draw()
-   cv = h['fitresults'].cd(3)
-   h['delPOverPz_proj'] = h['delPOverPz'].ProjectionY()
-   ROOT.gStyle.SetOptFit(11111)
-   h['delPOverPz_proj'].Draw()
-   h['delPOverPz_proj'].Fit('gaus')
-   cv = h['fitresults'].cd(4)
-   h['delPOverP2z_proj'] = h['delPOverP2z'].ProjectionY()
-   h['delPOverP2z_proj'].Draw()
-   fitSingleGauss('delPOverP2z_proj')
-   h['fitresults'].Print('fitresults.gif')
-   ut.bookCanvas(h,key='fitresults2',title='Fit Results',nx=1600,ny=1200,cx=2,cy=2)
-   print 'finished with first canvas'
-   cv = h['fitresults2'].cd(1)
-   h['Doca'].SetXTitle('closest distance between 2 tracks   [cm]')
-   h['Doca'].SetYTitle('N/1mm')
-   h['Doca'].Draw()
-   cv = h['fitresults2'].cd(2)
-   h['IP0'].SetXTitle('impact parameter to p-target   [cm]')
-   h['IP0'].SetYTitle('N/1cm')
-   h['IP0'].Draw()
-   cv = h['fitresults2'].cd(3)
-   h['HNL'].SetXTitle('inv. mass  [GeV/c2]')
-   h['HNL'].SetYTitle('N/4MeV/c2')
-   h['HNL'].Draw()
-   fitSingleGauss('HNL',0.9,1.1)
-   cv = h['fitresults2'].cd(4)
-   h['IP0/mass'].SetXTitle('inv. mass  [GeV/c2]')
-   h['IP0/mass'].SetYTitle('IP [cm]')
-   h['IP0/mass'].Draw('colz')
-   h['fitresults2'].Print('fitresults2.gif')
-   ut.bookCanvas(h,key='vxpulls',title='Vertex resol and pulls',nx=1600,ny=1200,cx=3,cy=2)
-   cv = h['vxpulls'].cd(4)
-   h['Vxpull'].Draw()
-   cv = h['vxpulls'].cd(5)
-   h['Vypull'].Draw()
-   cv = h['vxpulls'].cd(6)
-   h['Vzpull'].Draw()
-   cv = h['vxpulls'].cd(1)
-   h['Vxresol'].Draw()
-   cv = h['vxpulls'].cd(2)
-   h['Vyresol'].Draw()
-   cv = h['vxpulls'].cd(3)
-   h['Vzresol'].Draw()
-   ut.bookCanvas(h,key='trpulls',title='momentum pulls',nx=1600,ny=600,cx=3,cy=1)
-   cv = h['trpulls'].cd(1)
-   h['pullPOverPx_proj']=h['pullPOverPx'].ProjectionY()
-   h['pullPOverPx_proj'].Draw()
-   cv = h['trpulls'].cd(2)
-   h['pullPOverPy_proj']=h['pullPOverPy'].ProjectionY()
-   h['pullPOverPy_proj'].Draw()
-   cv = h['trpulls'].cd(3)
-   h['pullPOverPz_proj']=h['pullPOverPz'].ProjectionY()
-   h['pullPOverPz_proj'].Draw()
-   ut.bookCanvas(h,key='vetodecisions',title='Veto Detectors',nx=1600,ny=600,cx=5,cy=1)
-   cv = h['vetodecisions'].cd(1)
-   cv.SetLogy(1)
-   h['nrtracks'].Draw()
-   cv = h['vetodecisions'].cd(2)
-   cv.SetLogy(1)
-   h['nrSVT'].Draw()
-   cv = h['vetodecisions'].cd(3)
-   cv.SetLogy(1)
-   h['nrUVT'].Draw()
-   cv = h['vetodecisions'].cd(4)
-   cv.SetLogy(1)
-   h['nrSBT'].Draw()
-   cv = h['vetodecisions'].cd(5)
-   cv.SetLogy(1)
-   h['nrRPC'].Draw()
+			ut.bookCanvas(h,key='strawanalysis',title='Distance to wire and mean nr of hits',nx=1200,ny=600,cx=3,cy=1)
+			cv = h['strawanalysis'].cd(1)
+			h['disty'].Draw()
+			h['distu'].Draw('same')
+			h['distv'].Draw('same')
+			cv = h['strawanalysis'].cd(2)
+			h['meanhits'].Draw()
+			cv = h['strawanalysis'].cd(3)
+			h['meas2'].Draw()
+			ut.bookCanvas(h,key='fitresults',title='Fit Results',nx=1600,ny=1200,cx=2,cy=2)
+			cv = h['fitresults'].cd(1)
+			h['delPOverPz'].Draw('box')
+			cv = h['fitresults'].cd(2)
+			cv.SetLogy(1)
+			h['prob'].Draw()
+			cv = h['fitresults'].cd(3)
+			h['delPOverPz_proj'] = h['delPOverPz'].ProjectionY()
+			ROOT.gStyle.SetOptFit(11111)
+			h['delPOverPz_proj'].Draw()
+			h['delPOverPz_proj'].Fit('gaus')
+			cv = h['fitresults'].cd(4)
+			h['delPOverP2z_proj'] = h['delPOverP2z'].ProjectionY()
+			h['delPOverP2z_proj'].Draw()
+			fitSingleGauss('delPOverP2z_proj')
+			h['fitresults'].Print('fitresults.gif')
+			ut.bookCanvas(h,key='fitresults2',title='Fit Results',nx=1600,ny=1200,cx=2,cy=2)
+			print 'finished with first canvas'
+			cv = h['fitresults2'].cd(1)
+			h['Doca'].SetXTitle('closest distance between 2 tracks   [cm]')
+			h['Doca'].SetYTitle('N/1mm')
+			h['Doca'].Draw()
+			cv = h['fitresults2'].cd(2)
+			h['IP0'].SetXTitle('impact parameter to p-target   [cm]')
+			h['IP0'].SetYTitle('N/1cm')
+			h['IP0'].Draw()
+			cv = h['fitresults2'].cd(3)
+			h['HNL'].SetXTitle('inv. mass  [GeV/c2]')
+			h['HNL'].SetYTitle('N/4MeV/c2')
+			h['HNL'].Draw()
+			fitSingleGauss('HNL',0.9,1.1)
+			cv = h['fitresults2'].cd(4)
+			h['IP0/mass'].SetXTitle('inv. mass  [GeV/c2]')
+			h['IP0/mass'].SetYTitle('IP [cm]')
+			h['IP0/mass'].Draw('colz')
+			h['fitresults2'].Print('fitresults2.gif')
+			ut.bookCanvas(h,key='vxpulls',title='Vertex resol and pulls',nx=1600,ny=1200,cx=3,cy=2)
+			cv = h['vxpulls'].cd(4)
+			h['Vxpull'].Draw()
+			cv = h['vxpulls'].cd(5)
+			h['Vypull'].Draw()
+			cv = h['vxpulls'].cd(6)
+			h['Vzpull'].Draw()
+			cv = h['vxpulls'].cd(1)
+			h['Vxresol'].Draw()
+			cv = h['vxpulls'].cd(2)
+			h['Vyresol'].Draw()
+			cv = h['vxpulls'].cd(3)
+			h['Vzresol'].Draw()
+			ut.bookCanvas(h,key='trpulls',title='momentum pulls',nx=1600,ny=600,cx=3,cy=1)
+			cv = h['trpulls'].cd(1)
+			h['pullPOverPx_proj']=h['pullPOverPx'].ProjectionY()
+			h['pullPOverPx_proj'].Draw()
+			cv = h['trpulls'].cd(2)
+			h['pullPOverPy_proj']=h['pullPOverPy'].ProjectionY()
+			h['pullPOverPy_proj'].Draw()
+			cv = h['trpulls'].cd(3)
+			h['pullPOverPz_proj']=h['pullPOverPz'].ProjectionY()
+			h['pullPOverPz_proj'].Draw()
+			ut.bookCanvas(h,key='vetodecisions',title='Veto Detectors',nx=1600,ny=600,cx=5,cy=1)
+			cv = h['vetodecisions'].cd(1)
+			cv.SetLogy(1)
+			h['nrtracks'].Draw()
+			cv = h['vetodecisions'].cd(2)
+			cv.SetLogy(1)
+			h['nrSVT'].Draw()
+			cv = h['vetodecisions'].cd(3)
+			cv.SetLogy(1)
+			h['nrUVT'].Draw()
+			cv = h['vetodecisions'].cd(4)
+			cv.SetLogy(1)
+			h['nrSBT'].Draw()
+			cv = h['vetodecisions'].cd(5)
+			cv.SetLogy(1)
+			h['nrRPC'].Draw()
 #
-   print 'finished making plots'
+			print 'finished making plots'
 # calculate z front face of ecal, needed later
 top = ROOT.gGeoManager.GetTopVolume()
 ecal = None
 if top.GetNode('Ecal_1'):
- ecal = top.GetNode('Ecal_1')
- z_ecal = ecal.GetMatrix().GetTranslation()[2]
+	ecal = top.GetNode('Ecal_1')
+	z_ecal = ecal.GetMatrix().GetTranslation()[2]
 elif top.GetNode('SplitCalDetector_1'):
- ecal = top.GetNode('SplitCalDetector_1')
- z_ecal = ecal.GetMatrix().GetTranslation()[2]
+	ecal = top.GetNode('SplitCalDetector_1')
+	z_ecal = ecal.GetMatrix().GetTranslation()[2]
 
 # start event loop
 def myEventLoop(n):
-  global ecalReconstructed
-  rc = sTree.GetEntry(n)
+		global ecalReconstructed
+		rc = sTree.GetEntry(n)
 # check if tracks are made from real pattern recognition
 
-  measCut = measCutFK
+		measCut = measCutFK
 #   if sTree.GetBranch("FitTracks_PR"):    
 #     sTree.FitTracks = sTree.FitTracks_PR
 #     measCut = measCutPR
@@ -1434,8 +1454,8 @@ def myEventLoop(n):
 #   if sTree.GetBranch("Particles_PR"):    sTree.Particles   = sTree.Particles_PR
 #   # if not checkHNLorigin(sTree): return
 #   if not sTree.MCTrack.GetEntries()>1: wg = 1.
-  wg = sTree.MCTrack[1].GetWeight()
-  print(wg)
+		wg = sTree.MCTrack[1].GetWeight()
+		print(wg)
 #   if not wg>0.: wg=1.
 
 # # make some ecal cluster analysis if exist
@@ -1491,7 +1511,7 @@ def myEventLoop(n):
 #       pName = 'ecalClusters_unknown' 
 #      if not h.has_key(pName): ut.bookHist(h,pName,'x/y and energy for '+pName.split('_')[1],50,-3.,3.,50,-6.,6.)
 #      rc = h[pName].Fill(aClus.X()/u.m,aClus.Y()/u.m,aClus.Energy()/u.GeV)
-     
+					
 # # make some straw hit analysis
 #   hitlist = {}
 #   for ahit in sTree.strawtubesPoint:
@@ -1510,106 +1530,106 @@ def myEventLoop(n):
 #       if hitlist.has_key(trID):  hitlist[trID]+=1
 #       else:  hitlist[trID]=1
 #   for tr in hitlist:  h['meanhits'].Fill(hitlist[tr])
-  key = -1
-  fittedTracks = {}
-  for atrack in sTree.FitTracks:
-   key+=1
+		key = -1
+		fittedTracks = {}
+		for atrack in sTree.FitTracks:
+			key+=1
 # kill tracks outside fiducial volume
-   # print('fid',checkFiducialVolume(sTree,key,dy))
+			# print('fid',checkFiducialVolume(sTree,key,dy))
 
-   if not checkFiducialVolume(sTree,key,dy): continue
-   fitStatus   = atrack.getFitStatus()
-   nmeas = fitStatus.getNdf()
-   h['meas'].Fill(nmeas)
-   if not fitStatus.isFitConverged() : continue
-   h['meas2'].Fill(nmeas)
-   if nmeas < measCut: continue
-   fittedTracks[key] = atrack
+			if not checkFiducialVolume(sTree,key,dy): continue
+			fitStatus   = atrack.getFitStatus()
+			nmeas = fitStatus.getNdf()
+			h['meas'].Fill(nmeas)
+			if not fitStatus.isFitConverged() : continue
+			h['meas2'].Fill(nmeas)
+			if nmeas < measCut: continue
+			fittedTracks[key] = atrack
 # needs different study why fit has not converged, continue with fitted tracks
-   rchi2 = fitStatus.getChi2()
-   prob = ROOT.TMath.Prob(rchi2,int(nmeas))
-   h['prob'].Fill(prob)
-   chi2 = rchi2/nmeas
+			rchi2 = fitStatus.getChi2()
+			prob = ROOT.TMath.Prob(rchi2,int(nmeas))
+			h['prob'].Fill(prob)
+			chi2 = rchi2/nmeas
 
-   # print('nmeas',nmeas,'rchi2',rchi2)
+			# print('nmeas',nmeas,'rchi2',rchi2)
 
-   fittedState = atrack.getFittedState()
-   h['chi2'].Fill(chi2,wg)
-   h['measVSchi2'].Fill(atrack.getNumPoints(),chi2)
-   P = fittedState.getMomMag()
+			fittedState = atrack.getFittedState()
+			h['chi2'].Fill(chi2,wg)
+			h['measVSchi2'].Fill(atrack.getNumPoints(),chi2)
+			P = fittedState.getMomMag()
 
-   # print('P',P)
+			# print('P',P)
 
-   Px,Py,Pz = fittedState.getMom().x(),fittedState.getMom().y(),fittedState.getMom().z()
-   cov = fittedState.get6DCov()
-   if len(sTree.fitTrack2MC)-1<key: continue
-   mcPartKey = sTree.fitTrack2MC[key]
-   mcPart    = sTree.MCTrack[mcPartKey]
-   if not mcPart : continue
-   Ptruth_start     = mcPart.GetP()
-   Ptruthz_start    = mcPart.GetPz()
-   # get p truth from first strawpoint
-   Ptruth,Ptruthx,Ptruthy,Ptruthz = getPtruthFirst(sTree,mcPartKey)
-   delPOverP = (Ptruth - P)/Ptruth
-   h['delPOverP'].Fill(Ptruth,delPOverP)
-   delPOverPz = (1./Ptruthz - 1./Pz) * Ptruthz
-   h['pullPOverPx'].Fill( Ptruth,(Ptruthx-Px)/ROOT.TMath.Sqrt(cov[3][3]) )   
-   h['pullPOverPy'].Fill( Ptruth,(Ptruthy-Py)/ROOT.TMath.Sqrt(cov[4][4]) )   
-   h['pullPOverPz'].Fill( Ptruth,(Ptruthz-Pz)/ROOT.TMath.Sqrt(cov[5][5]) )   
-   h['delPOverPz'].Fill(Ptruthz,delPOverPz)
-   if chi2>chi2CutOff: continue
-   h['delPOverP2'].Fill(Ptruth,delPOverP)
-   h['delPOverP2z'].Fill(Ptruth,delPOverPz)
+			Px,Py,Pz = fittedState.getMom().x(),fittedState.getMom().y(),fittedState.getMom().z()
+			cov = fittedState.get6DCov()
+			if len(sTree.fitTrack2MC)-1<key: continue
+			mcPartKey = sTree.fitTrack2MC[key]
+			mcPart    = sTree.MCTrack[mcPartKey]
+			if not mcPart : continue
+			Ptruth_start     = mcPart.GetP()
+			Ptruthz_start    = mcPart.GetPz()
+			# get p truth from first strawpoint
+			Ptruth,Ptruthx,Ptruthy,Ptruthz = getPtruthFirst(sTree,mcPartKey)
+			delPOverP = (Ptruth - P)/Ptruth
+			h['delPOverP'].Fill(Ptruth,delPOverP)
+			delPOverPz = (1./Ptruthz - 1./Pz) * Ptruthz
+			h['pullPOverPx'].Fill( Ptruth,(Ptruthx-Px)/ROOT.TMath.Sqrt(cov[3][3]) )   
+			h['pullPOverPy'].Fill( Ptruth,(Ptruthy-Py)/ROOT.TMath.Sqrt(cov[4][4]) )   
+			h['pullPOverPz'].Fill( Ptruth,(Ptruthz-Pz)/ROOT.TMath.Sqrt(cov[5][5]) )   
+			h['delPOverPz'].Fill(Ptruthz,delPOverPz)
+			if chi2>chi2CutOff: continue
+			h['delPOverP2'].Fill(Ptruth,delPOverP)
+			h['delPOverP2z'].Fill(Ptruth,delPOverPz)
 # try measure impact parameter
-   trackDir = fittedState.getDir()
-   trackPos = fittedState.getPos()
-   vx = ROOT.TVector3()
-   mcPart.GetStartVertex(vx)
-   t = 0
-   for i in range(3):   t += trackDir(i)*(vx(i)-trackPos(i)) 
-   dist = 0
-   for i in range(3):   dist += (vx(i)-trackPos(i)-t*trackDir(i))**2
-   dist = ROOT.TMath.Sqrt(dist)
-   h['IP'].Fill(dist) 
+			trackDir = fittedState.getDir()
+			trackPos = fittedState.getPos()
+			vx = ROOT.TVector3()
+			mcPart.GetStartVertex(vx)
+			t = 0
+			for i in range(3):   t += trackDir(i)*(vx(i)-trackPos(i)) 
+			dist = 0
+			for i in range(3):   dist += (vx(i)-trackPos(i)-t*trackDir(i))**2
+			dist = ROOT.TMath.Sqrt(dist)
+			h['IP'].Fill(dist) 
 # ---
 # loop over particles, 2-track combinations
-  for HNL in sTree.Particles:
-    t1,t2 = HNL.GetDaughter(0),HNL.GetDaughter(1) 
+		for HNL in sTree.Particles:
+				t1,t2 = HNL.GetDaughter(0),HNL.GetDaughter(1) 
 # kill tracks outside fiducial volume, if enabled
-    if not checkFiducialVolume(sTree,t1,dy) or not checkFiducialVolume(sTree,t2,dy) : continue
-    checkMeasurements = True
+				if not checkFiducialVolume(sTree,t1,dy) or not checkFiducialVolume(sTree,t2,dy) : continue
+				checkMeasurements = True
 # cut on nDOF
-    for tr in [t1,t2]:
-      fitStatus  = sTree.FitTracks[tr].getFitStatus()
-      nmeas = fitStatus.getNdf()
-      if nmeas < measCut: checkMeasurements = False
-    if not checkMeasurements: continue
+				for tr in [t1,t2]:
+						fitStatus  = sTree.FitTracks[tr].getFitStatus()
+						nmeas = fitStatus.getNdf()
+						if nmeas < measCut: checkMeasurements = False
+				if not checkMeasurements: continue
 # check mc matching 
-    if not match2HNL(HNL): continue
-    HNLPos = ROOT.TLorentzVector()
-    HNL.ProductionVertex(HNLPos)
-    HNLMom = ROOT.TLorentzVector()
-    HNL.Momentum(HNLMom)
+				if not match2HNL(HNL): continue
+				HNLPos = ROOT.TLorentzVector()
+				HNL.ProductionVertex(HNLPos)
+				HNLMom = ROOT.TLorentzVector()
+				HNL.Momentum(HNLMom)
 # check if DOCA info exist
-    if hasattr(HNL,"GetDoca"):
-      doca  =  HNL.GetDoca()
-    elif HNL.GetMother(1)==99 :
-      doca  =  HNLPos.T()
-    else:
+				if hasattr(HNL,"GetDoca"):
+						doca  =  HNL.GetDoca()
+				elif HNL.GetMother(1)==99 :
+						doca  =  HNLPos.T()
+				else:
 # redo doca calculation
-     xv,yv,zv,doca,HNLMom  = RedoVertexing(t1,t2)
-     if HNLMom == -1: continue
- # check if decay inside decay volume
-    if not isInFiducial(HNLPos.X(),HNLPos.Y(),HNLPos.Z()): continue  
-    h['Doca'].Fill(doca) 
-    if  doca > docaCut : continue
-    tr = ROOT.TVector3(0,0,ShipGeo.target.z0)
-    dist = ImpactParameter(tr,HNLPos,HNLMom)
-    mass = HNLMom.M()
-    h['IP0'].Fill(dist)  
-    h['IP0/mass'].Fill(mass,dist)
-    h['HNL'].Fill(mass)
-    h['HNLw'].Fill(mass,wg)
+					xv,yv,zv,doca,HNLMom  = RedoVertexing(t1,t2)
+					if HNLMom == -1: continue
+	# check if decay inside decay volume
+				if not isInFiducial(HNLPos.X(),HNLPos.Y(),HNLPos.Z()): continue  
+				h['Doca'].Fill(doca) 
+				if  doca > docaCut : continue
+				tr = ROOT.TVector3(0,0,ShipGeo.target.z0)
+				dist = ImpactParameter(tr,HNLPos,HNLMom)
+				mass = HNLMom.M()
+				h['IP0'].Fill(dist)  
+				h['IP0/mass'].Fill(mass,dist)
+				h['HNL'].Fill(mass)
+				h['HNLw'].Fill(mass,wg)
 # #
 #     vetoDets['SBT'] = veto.SBT_decision()
 #     vetoDets['SVT'] = veto.SVT_decision()
@@ -1711,7 +1731,7 @@ def myEventLoop(n):
 #  ecalFiller.StoreTrackInformation()
 #  ecalStructure = ecalFiller.InitPython(sTree.EcalPointLite)
 #  caloTasks.append(ecalFiller)
- 
+	
 #  if hasattr(sTree,"EcalReconstructed"):
 #   calReco = False
 #   ecalReconstructed = sTree.EcalReconstructed
@@ -1755,64 +1775,56 @@ def myEventLoop(n):
 
 nEvents = min(sTree.GetEntries(),nEvents)
 
+single_muon_track_info = np.empty((0,7))
 
 key = -1
 measCut = measCutFK
 wg = 1
-fittedTracks = {}
+fittedTracks = []
+fittedTracks_event_num = np.empty(0)
 counting = 0
+event_num=-1
+list_of_fitted_states = []
 for events in sTree:
+	event_num+=1
 	for atrack in sTree.FitTracks:
+		# help(atrack)
+		fittedTracks.append(atrack)
+		fittedTracks_event_num = np.append(fittedTracks_event_num, event_num)
 		key=0
 		counting += 1
 		print(counting)
-		# kill tracks outside fiducial volume
-		# print('fid',checkFiducialVolume(sTree,key,dy))
 
-		if not checkFiducialVolume(sTree,key,dy): continue
+		# if not checkFiducialVolume(sTree,key,dy): continue
 		fitStatus   = atrack.getFitStatus()
 		nmeas = fitStatus.getNdf()
-		h['meas'].Fill(nmeas)
-		if not fitStatus.isFitConverged() : continue
-		h['meas2'].Fill(nmeas)
-		if nmeas < measCut: continue
-		fittedTracks[key] = atrack
-		# needs different study why fit has not converged, continue with fitted tracks
-		rchi2 = fitStatus.getChi2()
-		prob = ROOT.TMath.Prob(rchi2,int(nmeas))
-		h['prob'].Fill(prob)
-		chi2 = rchi2/nmeas
-
-		# print('nmeas',nmeas,'rchi2',rchi2)
+		# if not fitStatus.isFitConverged() : continue
+		# if nmeas < measCut: continue
+		if nmeas < 0: continue #there is a -1E99 value - this breaks stuff
+		# fittedTracks.append(atrack)
+		chi2 = fitStatus.getChi2()
+		print(nmeas)
+		prob = ROOT.TMath.Prob(chi2,int(nmeas))
+		rchi2 = chi2/nmeas
 
 		fittedState = atrack.getFittedState()
-		h['chi2'].Fill(chi2,wg)
-		h['measVSchi2'].Fill(atrack.getNumPoints(),chi2)
-		P = fittedState.getMomMag()
+		list_of_fitted_states = np.append(list_of_fitted_states, fittedState)
 
-		# print('P',P)
+		P = fittedState.getMomMag()
 
 		Px,Py,Pz = fittedState.getMom().x(),fittedState.getMom().y(),fittedState.getMom().z()
 		cov = fittedState.get6DCov()
-		if len(sTree.fitTrack2MC)-1<key: continue
+		# if len(sTree.fitTrack2MC)-1<key: continue
 		mcPartKey = sTree.fitTrack2MC[key]
 		mcPart    = sTree.MCTrack[mcPartKey]
 		if not mcPart : continue
 		Ptruth_start     = mcPart.GetP()
 		Ptruthz_start    = mcPart.GetPz()
-		# get p truth from first strawpoint
 		Ptruth,Ptruthx,Ptruthy,Ptruthz = getPtruthFirst(sTree,mcPartKey)
 		delPOverP = (Ptruth - P)/Ptruth
-		h['delPOverP'].Fill(Ptruth,delPOverP)
 		delPOverPz = (1./Ptruthz - 1./Pz) * Ptruthz
-		h['pullPOverPx'].Fill( Ptruth,(Ptruthx-Px)/ROOT.TMath.Sqrt(cov[3][3]) )   
-		h['pullPOverPy'].Fill( Ptruth,(Ptruthy-Py)/ROOT.TMath.Sqrt(cov[4][4]) )   
-		h['pullPOverPz'].Fill( Ptruth,(Ptruthz-Pz)/ROOT.TMath.Sqrt(cov[5][5]) )   
-		h['delPOverPz'].Fill(Ptruthz,delPOverPz)
-		if chi2>chi2CutOff: continue
-		h['delPOverP2'].Fill(Ptruth,delPOverP)
-		h['delPOverP2z'].Fill(Ptruth,delPOverPz)
-		# try measure impact parameter
+		weight = mcPart.GetWeight()
+		# if rchi2>chi2CutOff: continue
 		trackDir = fittedState.getDir()
 		trackPos = fittedState.getPos()
 		vx = ROOT.TVector3()
@@ -1822,20 +1834,80 @@ for events in sTree:
 		dist = 0
 		for i in range(3):   dist += (vx(i)-trackPos(i)-t*trackDir(i))**2
 		dist = ROOT.TMath.Sqrt(dist)
-		h['IP'].Fill(dist) 
+		single_muon_track_info = np.append(single_muon_track_info, [[weight, nmeas, rchi2, P, Px, Py, Pz]], axis=0)
 
 
-# for n in range(nEvents): 
-#  myEventLoop(n)
-#  sTree.FitTracks.Delete()
-# makePlots()
-# # output histograms
-# hfile = inputFile.split(',')[0].replace('_rec','_ana')
-# if hfile[0:4] == "/eos" or not inputFile.find(',')<0:
-# # do not write to eos, write to local directory 
-#   tmp = hfile.split('/')
-#   hfile = tmp[len(tmp)-1] 
-# ROOT.gROOT.cd()
-# ut.writeHists(h,hfile)
+
+print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]))
+
+delete_this = np.where(single_muon_track_info[:,1] > 25)
+single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+
+delete_this = np.where(single_muon_track_info[:,2] > 25)
+single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+
+delete_this = np.where(single_muon_track_info[:,2] < 0)
+single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+
+
+print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]))
+
+# plt.hist(single_muon_track_info[:,0],bins=75)
+# plt.savefig('test.png')
+# plt.close('all')
+
+
+pair_of_tracks_data = np.empty((0,3))
+# pairs = np.empty((0,2))
+counting = 0
+
+doca_list = np.empty(0)
+vtx_z_list = np.empty(0)
+
+weights_list_2 = np.empty(0)
+# for i in range(0, len(list_of_fitted_states)):
+for i in range(0, 3):
+	for j in range(i+1, len(list_of_fitted_states)):
+		print(counting)
+		# pairs = np.append(pairs, [[list_of_fitted_states[i],list_of_fitted_states[j]]], axis = 0)
+		# print(len(pairs))
+
+		pair = [list_of_fitted_states[i],list_of_fitted_states[j]]
+		weights_list_2 = np.append(weights_list_2, single_muon_track_info[i][0]*single_muon_track_info[j][0])
+		PosDir = {} 
+		PosDir[0] = [pair[0].getPos(),pair[0].getDir()]
+		PosDir[1] = [pair[1].getPos(),pair[1].getDir()]
+
+		# print(PosDir[0], PosDir[1])
+
+		# xv,yv,zv,doca = myVertex(pair[0],pair[1],PosDir)
+		# print(pair)
+		# try:
+		xv,yv,zv,doca = RedoVertexing(pair[0],pair[1])
+		print(doca)
+		# except:
+			# xv,yv,zv,doca = myVertex(pair[0],pair[1],PosDir)
+			# print('blurgh')
+
+
+		# print(xv,yv,zv,doca)
+
+		doca_list = np.append(doca_list, doca)
+		vtx_z_list = np.append(vtx_z_list, zv)
+
+		counting += 1
+		if counting%1000==0:
+			print(counting)
+
+
+plt.hist(doca_list, bins=100)
+plt.savefig('test.png')
+plt.close('all')
 
 
