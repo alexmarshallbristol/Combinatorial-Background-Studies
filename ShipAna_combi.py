@@ -1237,7 +1237,7 @@ def  RedoVertexing(t1,t2):
 							try:
 								reps[tr].extrapolateToPoint(states[tr], newPos, False)
 							except:
-								print 'SHiPAna: extrapolation did not work'
+								# print 'SHiPAna: extrapolation did not work'
 								rc = False  
 								break
 							# help(reps[tr].getPos(states[tr]))
@@ -1255,7 +1255,7 @@ def  RedoVertexing(t1,t2):
 						dz = abs(zBefore-zv)
 						step+=1
 						if step > 10:  
-									print 'abort iteration, too many steps, pos=',xv,yv,zv,' doca=',doca,'z before and dz',zBefore,dz
+									# print 'abort iteration, too many steps, pos=',xv,yv,zv,' doca=',doca,'z before and dz',zBefore,dz
 									rc = False
 									break 
 					if not rc: return xv,yv,zv,doca # extrapolation failed, makes no sense to continue
