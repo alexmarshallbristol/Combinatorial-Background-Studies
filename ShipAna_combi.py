@@ -1801,7 +1801,7 @@ for events in sTree:
 	event_num+=1
 	for atrack in sTree.FitTracks:
 		# help(atrack)
-		fittedTracks.append(atrack)
+		# fittedTracks.append(atrack)
 		fittedTracks_event_num = np.append(fittedTracks_event_num, event_num)
 		key=0
 		counting += 1
@@ -1818,7 +1818,7 @@ for events in sTree:
 		print(nmeas)
 		prob = ROOT.TMath.Prob(chi2,int(nmeas))
 		rchi2 = chi2/nmeas
-
+		fittedTracks.append(atrack)
 		fittedState = atrack.getFittedState()
 		list_of_fitted_states = np.append(list_of_fitted_states, fittedState)
 
@@ -1849,7 +1849,7 @@ for events in sTree:
 		single_muon_track_info = np.append(single_muon_track_info, [[weight, nmeas, rchi2, P, Px, Py, Pz]], axis=0)
 
 
-print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]))
+print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
 
 delete_this = np.where(single_muon_track_info[:,1] > 25)
 single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
@@ -1867,8 +1867,8 @@ fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
 list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
 
 
-print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]))
-
+print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
+quit()
 # plt.hist(single_muon_track_info[:,0],bins=75)
 # plt.savefig('test.png')
 # plt.close('all')
