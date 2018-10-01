@@ -1882,7 +1882,7 @@ counting = 0
 # vtx_z_list = np.empty(0)
 # Ip_list = np.empty(0)
 
-pair_muon_track_info = np.empty((0,4))
+pair_muon_track_info = np.empty((0,5))
 
 # weights_list_2 = np.empty(0)
 for i in range(0, len(list_of_fitted_states)):
