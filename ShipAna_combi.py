@@ -892,6 +892,7 @@ import matplotlib
 # Force matplotlib to not use any Xwindows backend.
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import math
 
 debug = False
 chi2CutOff  = 4.
@@ -1772,6 +1773,17 @@ def myEventLoop(n):
 #   ecalCalib         = ecalClusterCalib.InitPython()
 #   ecalReconstructed = ecalReco.InitPython(sTree.EcalClusters, ecalStructure, ecalCalib)
 #   ecalMatch.InitPython(ecalStructure, ecalReconstructed, sTree.MCTrack)
+def ImpactParameter2(point,tPos,tMom):
+		t = 0
+		# if hasattr(tMom,'P'): P = tMom.P()
+		# else:                 P = tMom.Mag()
+		P = math.sqrt(tMom[0]**2 + tMom[1]**2 + tMom[2]**2)
+		for i in range(3):   t += tMom[i]/P*(point(i)-tPos[i]) 
+		dist = 0
+		for i in range(3):   dist += (point[i]-tPos[i]-t*tMom[i]/P)**2
+		dist = ROOT.TMath.Sqrt(dist)
+		return dist
+
 
 nEvents = min(sTree.GetEntries(),nEvents)
 
@@ -1837,7 +1849,6 @@ for events in sTree:
 		single_muon_track_info = np.append(single_muon_track_info, [[weight, nmeas, rchi2, P, Px, Py, Pz]], axis=0)
 
 
-
 print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]))
 
 delete_this = np.where(single_muon_track_info[:,1] > 25)
@@ -1867,19 +1878,23 @@ pair_of_tracks_data = np.empty((0,3))
 # pairs = np.empty((0,2))
 counting = 0
 
-doca_list = np.empty(0)
-vtx_z_list = np.empty(0)
+# doca_list = np.empty(0)
+# vtx_z_list = np.empty(0)
+# Ip_list = np.empty(0)
 
-weights_list_2 = np.empty(0)
-# for i in range(0, len(list_of_fitted_states)):
-for i in range(0, 3):
+pair_muon_track_info = np.empty((0,4))
+
+# weights_list_2 = np.empty(0)
+for i in range(0, len(list_of_fitted_states)):
+# for i in range(0, 3):
 	for j in range(i+1, len(list_of_fitted_states)):
-		print(counting)
+		# print(counting)
 		# pairs = np.append(pairs, [[list_of_fitted_states[i],list_of_fitted_states[j]]], axis = 0)
 		# print(len(pairs))
 
 		pair = [list_of_fitted_states[i],list_of_fitted_states[j]]
-		weights_list_2 = np.append(weights_list_2, single_muon_track_info[i][0]*single_muon_track_info[j][0])
+		weight = single_muon_track_info[i][0]*single_muon_track_info[j][0]
+		# weights_list_2 = np.append(weights_list_2, weight)
 		PosDir = {} 
 		PosDir[0] = [pair[0].getPos(),pair[0].getDir()]
 		PosDir[1] = [pair[1].getPos(),pair[1].getDir()]
@@ -1890,7 +1905,30 @@ for i in range(0, 3):
 		# print(pair)
 		# try:
 		xv,yv,zv,doca = RedoVertexing(pair[0],pair[1])
-		print(doca)
+		# print(doca)
+
+		# help(pair[0])
+		# print(pair[0].getMom())
+		# print(pair[0].getMom()[0])
+
+		mom_i = [pair[0].getMom()[0],pair[0].getMom()[1],pair[0].getMom()[2]]
+		mom_j = [pair[1].getMom()[0],pair[1].getMom()[1],pair[1].getMom()[2]]
+
+		pair_mom = math.sqrt(mom_i[0]**2 + mom_i[1]**2 + mom_i[2]**2) + math.sqrt(mom_j[0]**2 + mom_j[1]**2 + mom_j[2]**2)
+
+		# print(mom_i)
+		# print(mom_j)
+		# print(' ')
+	
+
+		HNLPos = [xv,yv,zv]
+
+		HNLMom = [mom_i[0]+mom_j[0],mom_i[1]+mom_j[1],mom_i[2]+mom_j[2]]
+
+		# # HNLMom = [sum of momentum of charged tracks]
+		tr = ROOT.TVector3(0,0,ShipGeo.target.z0)
+		dist = ImpactParameter2(tr,HNLPos,HNLMom)
+
 		# except:
 			# xv,yv,zv,doca = myVertex(pair[0],pair[1],PosDir)
 			# print('blurgh')
@@ -1898,16 +1936,80 @@ for i in range(0, 3):
 
 		# print(xv,yv,zv,doca)
 
-		doca_list = np.append(doca_list, doca)
-		vtx_z_list = np.append(vtx_z_list, zv)
+		# doca_list = np.append(doca_list, doca)
+		# vtx_z_list = np.append(vtx_z_list, zv)
+		# Ip_list = np.append(Ip_list, dist)
+
+		pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom]],axis=0)
 
 		counting += 1
 		if counting%1000==0:
 			print(counting)
 
 
-plt.hist(doca_list, bins=100)
-plt.savefig('test.png')
-plt.close('all')
+np.save('pair_muon_track_info',pair_muon_track_info)
+np.save('single_muon_track_info',single_muon_track_info)
+
+
+####
+
+
+
+#   for HNL in sTree.Particles:
+#     t1,t2 = HNL.GetDaughter(0),HNL.GetDaughter(1) 
+# # kill tracks outside fiducial volume, if enabled
+#     if not checkFiducialVolume(sTree,t1,dy) or not checkFiducialVolume(sTree,t2,dy) : continue
+#     checkMeasurements = True
+# # cut on nDOF
+#     for tr in [t1,t2]:
+#       fitStatus  = sTree.FitTracks[tr].getFitStatus()
+#       nmeas = fitStatus.getNdf()
+#       if nmeas < measCut: checkMeasurements = False
+#     if not checkMeasurements: continue
+# # check mc matching 
+#     if not match2HNL(HNL): continue
+#     HNLPos = ROOT.TLorentzVector()
+#     HNL.ProductionVertex(HNLPos)
+#     HNLMom = ROOT.TLorentzVector()
+#     HNL.Momentum(HNLMom)
+# # check if DOCA info exist
+#     if hasattr(HNL,"GetDoca"):
+#       doca  =  HNL.GetDoca()
+#     elif HNL.GetMother(1)==99 :
+#       doca  =  HNLPos.T()
+#     else:
+# # redo doca calculation
+#      xv,yv,zv,doca,HNLMom  = RedoVertexing(t1,t2)
+#      if HNLMom == -1: continue
+#  # check if decay inside decay volume
+#     if not isInFiducial(HNLPos.X(),HNLPos.Y(),HNLPos.Z()): continue  
+#     h['Doca'].Fill(doca) 
+#     if  doca > docaCut : continue
+#     tr = ROOT.TVector3(0,0,ShipGeo.target.z0)
+
+# # look for pi0
+#     for pi0 in pi0Reco.findPi0(sTree,HNLPos):
+#        rc = h['pi0Mass'].Fill(pi0.M())
+#        if abs(pi0.M()-0.135)>0.02: continue 
+# # could also be used for eta, by changing cut
+#        HNLwithPi0 =  HNLMom + pi0
+#        dist = ImpactParameter(tr,HNLPos,HNLwithPi0)
+#        mass = HNLwithPi0.M()
+#        h['IP0_pi0'].Fill(dist)  
+#        h['IP0/mass_pi0'].Fill(mass,dist)
+#        h['HNL_pi0'].Fill(mass)
+
+#     dist = ImpactParameter(tr,HNLPos,HNLMom)
+#     mass = HNLMom.M()
+#     h['IP0'].Fill(dist)  
+#     h['IP0/mass'].Fill(mass,dist)
+#     h['HNL'].Fill(mass)
+#     h['HNLw'].Fill(mass,wg)
+
+
+# ####
+# plt.hist(Ip_list, bins=100)
+# plt.savefig('test.png')
+# plt.close('all')
 
 
