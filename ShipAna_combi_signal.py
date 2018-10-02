@@ -42,11 +42,11 @@ for o, a in opts:
 												nEvents = int(a)
 eosship = ROOT.gSystem.Getenv("EOSSHIP")
 
-f = ROOT.TFile('/eos/experiment/ship/user/truf/muonBackground-2018/ship.conical.MuonBack-TGeant4-0-66000_rec.root')
+f = ROOT.TFile('ship.conical.Pythia8-TGeant4_rec.root')
 sTree = f.cbmsim
 
 
-geoFile = 'geofile_full.conical.MuonBack-TGeant4.root'
+geoFile = 'geofile_full.conical.Pythia8-TGeant4.root'
 fgeo = ROOT.TFile(geoFile)
 
 # new geofile, load Shipgeo dictionary written by run_simScript.py
@@ -564,22 +564,71 @@ nEvents = min(sTree.GetEntries(),nEvents)
 single_muon_track_info = np.empty((0,7))
 
 key = -1
+
 measCut = measCutFK
+
 wg = 1
+
 fittedTracks = []
+
 fittedTracks_event_num = np.empty(0)
+
 counting = 0
+
 event_num=-1
+
 list_of_fitted_states = []
+
+buffer_of_fitted_states = []
+
+pair_muon_track_info = np.empty((0,5))
+event_num_buffer = 1E99
+
 for events in sTree:
 	event_num+=1
 	for atrack in sTree.FitTracks:
+		print(event_num)
+		if event_num == event_num_buffer:
+			print('in')
+			fittedState = atrack.getFittedState()
+			pair = [buffer_of_fitted_states[-1],fittedState]
+			mcPartKey = sTree.fitTrack2MC[0]
+			mcPart    = sTree.MCTrack[mcPartKey]
+			if not mcPart : continue
+			weight = mcPart.GetWeight()
+			PosDir = {} 
+			PosDir[0] = [pair[0].getPos(),pair[0].getDir()]
+			PosDir[1] = [pair[1].getPos(),pair[1].getDir()]
+			xv,yv,zv,doca = RedoVertexing(pair[0],pair[1])
+			mom_i = [pair[0].getMom()[0],pair[0].getMom()[1],pair[0].getMom()[2]]
+			mom_j = [pair[1].getMom()[0],pair[1].getMom()[1],pair[1].getMom()[2]]
+			pair_mom = math.sqrt(mom_i[0]**2 + mom_i[1]**2 + mom_i[2]**2) + math.sqrt(mom_j[0]**2 + mom_j[1]**2 + mom_j[2]**2)
+			HNLPos = [xv,yv,zv]
+			HNLMom = [mom_i[0]+mom_j[0],mom_i[1]+mom_j[1],mom_i[2]+mom_j[2]]
+			tr = ROOT.TVector3(0,0,ShipGeo.target.z0)
+			dist = ImpactParameter2(tr,HNLPos,HNLMom)
+
+			# isInFiducial(X,Y,Z)
+
+			pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom]],axis=0)
+
+
+
+
+		event_num_buffer = event_num
+
+		fittedState = atrack.getFittedState()
+		buffer_of_fitted_states.append(fittedState)
+
+		# save if two tracks - compute same analysis
+
+
 		# help(atrack)
 		# fittedTracks.append(atrack)
-		fittedTracks_event_num = np.append(fittedTracks_event_num, event_num)
-		key=0
+		# fittedTracks_event_num = np.append(fittedTracks_event_num, event_num)
+		# key=0
 		counting += 1
-		# print(counting)
+		print(counting)
 
 		# if not checkFiducialVolume(sTree,key,dy): continue
 		fitStatus   = atrack.getFitStatus()
@@ -589,7 +638,7 @@ for events in sTree:
 		if nmeas < 0: continue #there is a -1E99 value - this breaks stuff
 		# fittedTracks.append(atrack)
 		chi2 = fitStatus.getChi2()
-		# print(nmeas)
+		print(nmeas)
 		prob = ROOT.TMath.Prob(chi2,int(nmeas))
 		rchi2 = chi2/nmeas
 		fittedTracks.append(atrack)
@@ -609,9 +658,6 @@ for events in sTree:
 		Ptruth,Ptruthx,Ptruthy,Ptruthz = getPtruthFirst(sTree,mcPartKey)
 		delPOverP = (Ptruth - P)/Ptruth
 		delPOverPz = (1./Ptruthz - 1./Pz) * Ptruthz
-
-		# print(mcPart.GetWeight(), mcPart.GetWeight())
-
 		weight = mcPart.GetWeight()
 		# if rchi2>chi2CutOff: continue
 		trackDir = fittedState.getDir()
@@ -625,106 +671,111 @@ for events in sTree:
 		dist = ROOT.TMath.Sqrt(dist)
 		single_muon_track_info = np.append(single_muon_track_info, [[weight, nmeas, rchi2, P, Px, Py, Pz]], axis=0)
 
+np.save('pair_muon_track_info_signal',pair_muon_track_info)
+np.save('single_muon_track_info_signal',single_muon_track_info)
+
+quit()
+
+
+# print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
+
+# delete_this = np.where(single_muon_track_info[:,1] > 25)
+# single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+# fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+# list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+
+# delete_this = np.where(single_muon_track_info[:,2] > 25)
+# single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+# fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+# list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+
+# delete_this = np.where(single_muon_track_info[:,2] < 0)
+# single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+# fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+# list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+
+
+# print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
 # quit()
-print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
-
-delete_this = np.where(single_muon_track_info[:,1] > 25)
-single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
-fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
-list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
-
-delete_this = np.where(single_muon_track_info[:,2] > 25)
-single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
-fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
-list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
-
-delete_this = np.where(single_muon_track_info[:,2] < 0)
-single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
-fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
-list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+# # plt.hist(single_muon_track_info[:,0],bins=75)
+# # plt.savefig('test.png')
+# # plt.close('all')
 
 
-print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
-# quit()
-# plt.hist(single_muon_track_info[:,0],bins=75)
-# plt.savefig('test.png')
-# plt.close('all')
+# pair_of_tracks_data = np.empty((0,3))
+# # pairs = np.empty((0,2))
+# counting = 0
 
+# # doca_list = np.empty(0)
+# # vtx_z_list = np.empty(0)
+# # Ip_list = np.empty(0)
 
-pair_of_tracks_data = np.empty((0,3))
-# pairs = np.empty((0,2))
-counting = 0
+# pair_muon_track_info = np.empty((0,5))
 
-# doca_list = np.empty(0)
-# vtx_z_list = np.empty(0)
-# Ip_list = np.empty(0)
+# # weights_list_2 = np.empty(0)
+# for i in range(0, len(list_of_fitted_states)):
+# # for i in range(0, 3):
+# 	for j in range(i+1, len(list_of_fitted_states)):
+# 		# print(counting)
+# 		# pairs = np.append(pairs, [[list_of_fitted_states[i],list_of_fitted_states[j]]], axis = 0)
+# 		# print(len(pairs))
 
-pair_muon_track_info = np.empty((0,5))
+# 		pair = [list_of_fitted_states[i],list_of_fitted_states[j]]
+# 		weight = single_muon_track_info[i][0]*single_muon_track_info[j][0]
+# 		# weights_list_2 = np.append(weights_list_2, weight)
+# 		PosDir = {} 
+# 		PosDir[0] = [pair[0].getPos(),pair[0].getDir()]
+# 		PosDir[1] = [pair[1].getPos(),pair[1].getDir()]
 
-# weights_list_2 = np.empty(0)
-for i in range(0, len(list_of_fitted_states)):
-# for i in range(0, 3):
-	for j in range(i+1, len(list_of_fitted_states)):
-		# print(counting)
-		# pairs = np.append(pairs, [[list_of_fitted_states[i],list_of_fitted_states[j]]], axis = 0)
-		# print(len(pairs))
+# 		# print(PosDir[0], PosDir[1])
 
-		pair = [list_of_fitted_states[i],list_of_fitted_states[j]]
-		weight = single_muon_track_info[i][0]*single_muon_track_info[j][0]
-		# weights_list_2 = np.append(weights_list_2, weight)
-		PosDir = {} 
-		PosDir[0] = [pair[0].getPos(),pair[0].getDir()]
-		PosDir[1] = [pair[1].getPos(),pair[1].getDir()]
+# 		# xv,yv,zv,doca = myVertex(pair[0],pair[1],PosDir)
+# 		# print(pair)
+# 		# try:
+# 		xv,yv,zv,doca = RedoVertexing(pair[0],pair[1])
+# 		# print(doca)
 
-		# print(PosDir[0], PosDir[1])
+# 		# help(pair[0])
+# 		# print(pair[0].getMom())
+# 		# print(pair[0].getMom()[0])
 
-		# xv,yv,zv,doca = myVertex(pair[0],pair[1],PosDir)
-		# print(pair)
-		# try:
-		xv,yv,zv,doca = RedoVertexing(pair[0],pair[1])
-		# print(doca)
+# 		mom_i = [pair[0].getMom()[0],pair[0].getMom()[1],pair[0].getMom()[2]]
+# 		mom_j = [pair[1].getMom()[0],pair[1].getMom()[1],pair[1].getMom()[2]]
 
-		# help(pair[0])
-		# print(pair[0].getMom())
-		# print(pair[0].getMom()[0])
+# 		pair_mom = math.sqrt(mom_i[0]**2 + mom_i[1]**2 + mom_i[2]**2) + math.sqrt(mom_j[0]**2 + mom_j[1]**2 + mom_j[2]**2)
 
-		mom_i = [pair[0].getMom()[0],pair[0].getMom()[1],pair[0].getMom()[2]]
-		mom_j = [pair[1].getMom()[0],pair[1].getMom()[1],pair[1].getMom()[2]]
-
-		pair_mom = math.sqrt(mom_i[0]**2 + mom_i[1]**2 + mom_i[2]**2) + math.sqrt(mom_j[0]**2 + mom_j[1]**2 + mom_j[2]**2)
-
-		# print(mom_i)
-		# print(mom_j)
-		# print(' ')
+# 		# print(mom_i)
+# 		# print(mom_j)
+# 		# print(' ')
 	
 
-		HNLPos = [xv,yv,zv]
+# 		HNLPos = [xv,yv,zv]
 
-		HNLMom = [mom_i[0]+mom_j[0],mom_i[1]+mom_j[1],mom_i[2]+mom_j[2]]
+# 		HNLMom = [mom_i[0]+mom_j[0],mom_i[1]+mom_j[1],mom_i[2]+mom_j[2]]
 
-		# # HNLMom = [sum of momentum of charged tracks]
-		tr = ROOT.TVector3(0,0,ShipGeo.target.z0)
-		dist = ImpactParameter2(tr,HNLPos,HNLMom)
+# 		# # HNLMom = [sum of momentum of charged tracks]
+# 		tr = ROOT.TVector3(0,0,ShipGeo.target.z0)
+# 		dist = ImpactParameter2(tr,HNLPos,HNLMom)
 
-		# except:
-			# xv,yv,zv,doca = myVertex(pair[0],pair[1],PosDir)
-			# print('blurgh')
-
-
-		# print(xv,yv,zv,doca)
-
-		# doca_list = np.append(doca_list, doca)
-		# vtx_z_list = np.append(vtx_z_list, zv)
-		# Ip_list = np.append(Ip_list, dist)
-
-		pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom]],axis=0)
-
-		counting += 1
-		if counting%1000==0:
-			print(counting)
+# 		# except:
+# 			# xv,yv,zv,doca = myVertex(pair[0],pair[1],PosDir)
+# 			# print('blurgh')
 
 
-np.save('pair_muon_track_info_not1overweight',pair_muon_track_info)
-np.save('single_muon_track_info_not1overweight',single_muon_track_info)
+# 		# print(xv,yv,zv,doca)
+
+# 		# doca_list = np.append(doca_list, doca)
+# 		# vtx_z_list = np.append(vtx_z_list, zv)
+# 		# Ip_list = np.append(Ip_list, dist)
+
+# 		pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom]],axis=0)
+
+# 		counting += 1
+# 		if counting%1000==0:
+# 			print(counting)
+
+
+# np.save('pair_muon_track_info',pair_muon_track_info)
+# np.save('single_muon_track_info',single_muon_track_info)
 
 
