@@ -691,7 +691,7 @@ fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
 list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
 
 print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
-quit()
+# quit()
 # plt.hist(single_muon_track_info[:,0],bins=75)
 # plt.savefig('test.png')
 # plt.close('all')

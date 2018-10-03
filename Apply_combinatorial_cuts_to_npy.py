@@ -47,10 +47,37 @@ print(np.shape(pair_background), np.sum(pair_background[:,0]), np.sum(pair_backg
 
 
 
+pair_signal = np.load('pair_muon_track_info_signal.npy')
 
 
+total_rate_pre_cut_signal = np.sum(pair_signal[:,0])
+print('total rate signal:', total_rate_pre_cut_signal)
+
+#doca
+to_delete = np.where(pair_signal[:,1] > 1)
+pair_signal = np.delete(pair_signal, to_delete, axis=0)
+
+#ip
+to_delete = np.where(pair_signal[:,3] > 250)
+pair_signal = np.delete(pair_signal, to_delete, axis=0)
+
+# to_delete = np.where(pair_background[:,4] < 1)
+
+# pair_background = np.delete(pair_background, to_delete, axis=0)
+
+#individual track mom
+to_delete = np.where(pair_signal[:,6] < 1)
+pair_signal = np.delete(pair_signal, to_delete, axis=0)
+to_delete = np.where(pair_signal[:,7] < 1)
+pair_signal = np.delete(pair_signal, to_delete, axis=0)
 
 
+#fiducial
+to_delete = np.where(pair_signal[:,5] == 0)
+pair_signal = np.delete(pair_signal, to_delete, axis=0)
+
+
+print(np.shape(pair_signal), np.sum(pair_signal[:,0]), np.sum(pair_signal[:,0])/total_rate_pre_cut_signal)
 
 
 

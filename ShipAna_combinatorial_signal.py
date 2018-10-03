@@ -46,7 +46,7 @@ f = ROOT.TFile('ship.conical.Pythia8-TGeant4_rec.root')
 sTree = f.cbmsim
 
 
-geoFile = 'geofile_full.conical.Pythia8-TGeant4.root'
+geoFile = 'geofile_full.conical.Pythia8-TGeant4_sig.root'
 fgeo = ROOT.TFile(geoFile)
 
 # new geofile, load Shipgeo dictionary written by run_simScript.py
