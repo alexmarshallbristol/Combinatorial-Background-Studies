@@ -561,7 +561,7 @@ def ImpactParameter2(point,tPos,tMom):
 
 nEvents = min(sTree.GetEntries(),nEvents)
 
-single_muon_track_info = np.empty((0,7))
+single_muon_track_info = np.empty((0,8))
 
 key = -1
 measCut = measCutFK
@@ -623,7 +623,49 @@ for events in sTree:
 		dist = 0
 		for i in range(3):   dist += (vx(i)-trackPos(i)-t*trackDir(i))**2
 		dist = ROOT.TMath.Sqrt(dist)
-		single_muon_track_info = np.append(single_muon_track_info, [[weight, nmeas, rchi2, P, Px, Py, Pz]], axis=0)
+
+		hits_in_straw_stations = np.zeros(4)
+
+		# for ahit in sTree.strawtubesPoint:
+		# 	detID = ahit.GetDetectorID()
+
+		# 	# print(int(str(detID)[:1]))
+
+		# 	if int(str(detID)[:1]) == 1:
+		# 		hits_in_straw_stations[0] = 1
+		# 	if int(str(detID)[:1]) == 2:
+		# 		hits_in_straw_stations[1] = 1
+		# 	if int(str(detID)[:1]) == 3:
+		# 		hits_in_straw_stations[2] = 1
+		# 	if int(str(detID)[:1]) == 4:
+		# 		hits_in_straw_stations[3] = 1
+
+		for ahit in sTree.Digi_StrawtubesHits:
+			# help(ahit)
+
+			detID = ahit.GetDetectorID()
+			# print(detID)
+			if int(str(detID)[:1]) == 1:
+				hits_in_straw_stations[0] = 1
+			if int(str(detID)[:1]) == 2:
+				hits_in_straw_stations[1] = 1
+			if int(str(detID)[:1]) == 3:
+				hits_in_straw_stations[2] = 1
+			if int(str(detID)[:1]) == 4:
+				hits_in_straw_stations[3] = 1
+
+			# print(detID)
+		# print(' ')
+		hits_before_and_after = 0
+		if hits_in_straw_stations[0] == 1 or hits_in_straw_stations[1] == 1:
+			if hits_in_straw_stations[2] == 1 or hits_in_straw_stations[3] == 1:
+				hits_before_and_after = 1
+		print(hits_before_and_after)
+
+		single_muon_track_info = np.append(single_muon_track_info, [[weight, nmeas, rchi2, P, Px, Py, Pz, hits_before_and_after]], axis=0)
+
+
+
 
 # quit()
 print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
@@ -643,9 +685,13 @@ single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
 fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
 list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
 
+delete_this = np.where(single_muon_track_info[:,7] == 0)
+single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
 
 print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
-# quit()
+quit()
 # plt.hist(single_muon_track_info[:,0],bins=75)
 # plt.savefig('test.png')
 # plt.close('all')
@@ -659,7 +705,7 @@ counting = 0
 # vtx_z_list = np.empty(0)
 # Ip_list = np.empty(0)
 
-pair_muon_track_info = np.empty((0,5))
+pair_muon_track_info = np.empty((0,6))
 
 # weights_list_2 = np.empty(0)
 for i in range(0, len(list_of_fitted_states)):
@@ -682,6 +728,14 @@ for i in range(0, len(list_of_fitted_states)):
 		# print(pair)
 		# try:
 		xv,yv,zv,doca = RedoVertexing(pair[0],pair[1])
+
+		fid = isInFiducial(xv,yv,zv)
+		if fid == True:
+			fid = 1
+		elif fid == False:
+			fid = 0
+
+
 		# print(doca)
 
 		# help(pair[0])
@@ -717,7 +771,7 @@ for i in range(0, len(list_of_fitted_states)):
 		# vtx_z_list = np.append(vtx_z_list, zv)
 		# Ip_list = np.append(Ip_list, dist)
 
-		pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom]],axis=0)
+		pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom, fid]],axis=0)
 
 		counting += 1
 		if counting%1000==0:

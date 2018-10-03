@@ -30,8 +30,11 @@ to_delete = np.where(pair_background[:,4] < 1)
 
 pair_background = np.delete(pair_background, to_delete, axis=0)
 
-#if fiducial
+to_delete = np.where(pair_background[:,5] == 0)
 
+pair_background = np.delete(pair_background, to_delete, axis=0)
+
+#if fiducial
 
 print(np.shape(pair_background), np.sum(pair_background[:,0]), np.sum(pair_background[:,0])/total_rate_pre_cut)
 

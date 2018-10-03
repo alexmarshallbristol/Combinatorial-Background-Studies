@@ -581,7 +581,7 @@ list_of_fitted_states = []
 
 buffer_of_fitted_states = []
 
-pair_muon_track_info = np.empty((0,5))
+pair_muon_track_info = np.empty((0,6))
 event_num_buffer = 1E99
 
 for events in sTree:
@@ -600,6 +600,11 @@ for events in sTree:
 			PosDir[0] = [pair[0].getPos(),pair[0].getDir()]
 			PosDir[1] = [pair[1].getPos(),pair[1].getDir()]
 			xv,yv,zv,doca = RedoVertexing(pair[0],pair[1])
+			fid = isInFiducial(xv,yv,zv)
+			if fid == True:
+				fid = 1
+			elif fid == False:
+				fid = 0
 			mom_i = [pair[0].getMom()[0],pair[0].getMom()[1],pair[0].getMom()[2]]
 			mom_j = [pair[1].getMom()[0],pair[1].getMom()[1],pair[1].getMom()[2]]
 			pair_mom = math.sqrt(mom_i[0]**2 + mom_i[1]**2 + mom_i[2]**2) + math.sqrt(mom_j[0]**2 + mom_j[1]**2 + mom_j[2]**2)
@@ -610,7 +615,7 @@ for events in sTree:
 
 			# isInFiducial(X,Y,Z)
 
-			pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom]],axis=0)
+			pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom, fid]],axis=0)
 
 
 
