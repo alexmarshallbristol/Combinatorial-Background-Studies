@@ -1,0 +1,42 @@
+5.2.1.3 Muon combinatorial background
+
+
+Random combinations of muons which enter the vacuum vessel, either by back-scattering in
+the surrounding cavern walls or due to the imperfection of the muon shield, may mimic signal
+events. The rate of fully reconstructed muons inside the SHiP spectrometer has been estimated
+with the full FairShip simulation to 7 kHz during the spill. In order to study the expected
+combinatorial background the fully simulated residual muons (O(10)), which enter the decay
+volume, are used to seed a toy MC to simulate the expected number of muons in the decay
+volume (3.5 · 1010 muons, that is O(1012) muon pairs) in the five years of data taking. The
+inherent systematic uncertainty of the toy MC generation requires further studies.
+A basic set of kinematic and topological criteria, which are in line with the selection employed
+in the signal sensitivity studies in Section 5.2.2, allows reducing the number of fake
+dimuons. The cuts are summarized in Table 5.2.1.3.
+
+
+Table 5.5: Effect of the loose offline pre-selection on the muon combinatorial background.
+Cut Value
+Track P > 1.5 GeV/c
+Track χ
+2/ndof < 25
+dimuon DOCA < 1 cm
+dimuon vertex fiducial
+dimuon mass > 0.2 GeV/c
+2
+IP w.r.t target < 2.5 m
+Efficiency 10−4
+
+
+The first requirement specifically designed to suppress combinatorial background is the use
+of the timing veto detectors described in Section 4.9. Using a timing window of 340 ps, corresponding
+to three times the resolution of the timing detector, the number of dimuon vertices
+with the muons in the window integrated over the assumed running time of the experiment
+is O(10). Hence, the timing requirement contributes a factor ∼ 10−7
+to the combinatorial
+background suppression.
+The residual combinatorial background is further suppressed by employing information from
+the upstream veto detectors, as discussed in Section 4.6, as well as the surrounding background
+tagger, as described in Section 4.5. This allows another reduction factor of 10−4
+. Consequently,
+the muon combinatorial background is reduced to < 0.1 events. Further studies are required
+in order to fully understand the sources of muons penetrating into the decay volume.
