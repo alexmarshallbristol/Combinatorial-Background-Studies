@@ -44,9 +44,11 @@ pair_background = np.delete(pair_background, to_delete, axis=0)
 
 print(np.shape(pair_background), np.sum(pair_background[:,0]), np.sum(pair_background[:,0])/total_rate_pre_cut)
 
+# need to get errors - (sqrt(sum(weights**2)) for that that got through) same for that that didnt get through - combine in quadrature for ratio error 
 
 
 
+#signal
 pair_signal = np.load('pair_muon_track_info_signal.npy')
 
 
