@@ -571,106 +571,70 @@ fittedTracks_event_num = np.empty(0)
 counting = 0
 event_num=-1
 list_of_fitted_states = []
+number_of_fittedtracks = 0
+
+list_of_weights = np.empty(0)
 for events in sTree:
 	event_num+=1
 	for atrack in sTree.FitTracks:
+		number_of_fittedtracks += 1
+		# print(number_of_fittedtracks)
 		# help(atrack)
+		# print()
 		# fittedTracks.append(atrack)
-		fittedTracks_event_num = np.append(fittedTracks_event_num, event_num)
-		key=0
-		counting += 1
-		# print(counting)
+		try:
+			fitStatus   = atrack.getFitStatus()
+			nmeas = fitStatus.getNdf()
+			# if not fitStatus.isFitConverged() : continue
+			# if nmeas < measCut: 
+			# 	print('fucked')
+			# 	continue
+			if nmeas < 0: 
+				print('fucked')
+				continue #there is a -1E99 value - this breaks stuff
+			if nmeas < 25: 
+				print('fucked')
+				continue #there is a -1E99 value - this breaks stuff
+			mcPartKey = sTree.fitTrack2MC[key]
+			mcPart    = sTree.MCTrack[mcPartKey]
+			chi2 = fitStatus.getChi2()
+			# print(nmeas)
+			# prob = ROOT.TMath.Prob(chi2,int(nmeas))
+			rchi2 = chi2/nmeas
+			if rchi2 > 25: 
+				print('fucked')
+				continue #there is a -1E99 value - this breaks stuff
 
-		# if not checkFiducialVolume(sTree,key,dy): continue
-		fitStatus   = atrack.getFitStatus()
-		nmeas = fitStatus.getNdf()
-		# if not fitStatus.isFitConverged() : continue
-		# if nmeas < measCut: continue
-		if nmeas < 0: continue #there is a -1E99 value - this breaks stuff
-		# fittedTracks.append(atrack)
-		chi2 = fitStatus.getChi2()
-		# print(nmeas)
-		prob = ROOT.TMath.Prob(chi2,int(nmeas))
-		rchi2 = chi2/nmeas
-		fittedTracks.append(atrack)
-		fittedState = atrack.getFittedState()
-		list_of_fitted_states = np.append(list_of_fitted_states, fittedState)
+			if not mcPart : 
+				continue
 
-		P = fittedState.getMomMag()
 
-		Px,Py,Pz = fittedState.getMom().x(),fittedState.getMom().y(),fittedState.getMom().z()
-		cov = fittedState.get6DCov()
-		# if len(sTree.fitTrack2MC)-1<key: continue
-		mcPartKey = sTree.fitTrack2MC[key]
-		mcPart    = sTree.MCTrack[mcPartKey]
-		if not mcPart : continue
-		Ptruth_start     = mcPart.GetP()
-		Ptruthz_start    = mcPart.GetPz()
-		Ptruth,Ptruthx,Ptruthy,Ptruthz = getPtruthFirst(sTree,mcPartKey)
-		delPOverP = (Ptruth - P)/Ptruth
-		delPOverPz = (1./Ptruthz - 1./Pz) * Ptruthz
+			weight = mcPart.GetWeight()
+			list_of_weights = np.append(list_of_weights, weight)
+		
+		except:
+			print('blurgh')
+# quit()
+total_weight = 0
+total_weight_sq = 0
 
-		# print(mcPart.GetWeight(), mcPart.GetWeight())
+print(np.shape(list_of_weights))
+for i in range(0, len(list_of_weights)):
+	for j in range(i+1, len(list_of_weights)):
+		total_weight += list_of_weights[i]*list_of_weights[j]
+		total_weight_sq += (list_of_weights[i]*list_of_weights[j])**2
 
-		weight = mcPart.GetWeight()
-		# if rchi2>chi2CutOff: continue
-		trackDir = fittedState.getDir()
-		trackPos = fittedState.getPos()
-		vx = ROOT.TVector3()
-		mcPart.GetStartVertex(vx)
-		t = 0
-		for i in range(3):   t += trackDir(i)*(vx(i)-trackPos(i)) 
-		dist = 0
-		for i in range(3):   dist += (vx(i)-trackPos(i)-t*trackDir(i))**2
-		dist = ROOT.TMath.Sqrt(dist)
 
-		hits_in_straw_stations = np.zeros(4)
+print(total_weight, math.sqrt(total_weight_sq))
 
-		# for ahit in sTree.strawtubesPoint:
-		# 	detID = ahit.GetDetectorID()
-
-		# 	# print(int(str(detID)[:1]))
-
-		# 	if int(str(detID)[:1]) == 1:
-		# 		hits_in_straw_stations[0] = 1
-		# 	if int(str(detID)[:1]) == 2:
-		# 		hits_in_straw_stations[1] = 1
-		# 	if int(str(detID)[:1]) == 3:
-		# 		hits_in_straw_stations[2] = 1
-		# 	if int(str(detID)[:1]) == 4:
-		# 		hits_in_straw_stations[3] = 1
-
-		for ahit in sTree.Digi_StrawtubesHits:
-			# help(ahit)
-
-			detID = ahit.GetDetectorID()
-			# print(detID)
-			if int(str(detID)[:1]) == 1:
-				hits_in_straw_stations[0] = 1
-			if int(str(detID)[:1]) == 2:
-				hits_in_straw_stations[1] = 1
-			if int(str(detID)[:1]) == 3:
-				hits_in_straw_stations[2] = 1
-			if int(str(detID)[:1]) == 4:
-				hits_in_straw_stations[3] = 1
-
-			# print(detID)
-		# print(' ')
-		hits_before_and_after = 0
-		if hits_in_straw_stations[0] == 1 or hits_in_straw_stations[1] == 1:
-			if hits_in_straw_stations[2] == 1 or hits_in_straw_stations[3] == 1:
-				hits_before_and_after = 1
-		# print(hits_before_and_after)
-
-		single_muon_track_info = np.append(single_muon_track_info, [[weight, nmeas, rchi2, P, Px, Py, Pz, hits_before_and_after]], axis=0)
-
+quit()
 
 
 
 # quit()
 print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
-
-delete_this = np.where(single_muon_track_info[:,1] < 25)
+# quit()
+delete_this = np.where(single_muon_track_info[:,1] > 25)
 single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
 fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
 list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
@@ -684,14 +648,14 @@ delete_this = np.where(single_muon_track_info[:,2] < 0)
 single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
 fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
 list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
-print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
+
 delete_this = np.where(single_muon_track_info[:,7] == 0)
 single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
 fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
 list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
 
 print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
-# quit()
+quit()
 # plt.hist(single_muon_track_info[:,0],bins=75)
 # plt.savefig('test.png')
 # plt.close('all')
@@ -705,7 +669,7 @@ counting = 0
 # vtx_z_list = np.empty(0)
 # Ip_list = np.empty(0)
 
-pair_muon_track_info = np.empty((0,8))
+pair_muon_track_info = np.empty((0,12))
 
 # weights_list_2 = np.empty(0)
 for i in range(0, len(list_of_fitted_states)):
@@ -774,14 +738,14 @@ for i in range(0, len(list_of_fitted_states)):
 		# vtx_z_list = np.append(vtx_z_list, zv)
 		# Ip_list = np.append(Ip_list, dist)
 
-		pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom, fid, mom_i_mag, mom_j_mag]],axis=0)
+		pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom, fid, mom_i_mag, mom_j_mag,single_muon_track_info[i][1],single_muon_track_info[j][1],single_muon_track_info[i][2],single_muon_track_info[j][2]]],axis=0)
 
 		counting += 1
 		if counting%1000==0:
 			print(counting)
 
 
-np.save('pair_muon_track_info_not1overweight',pair_muon_track_info)
-np.save('single_muon_track_info_not1overweight',single_muon_track_info)
+np.save('pair_muon_track_info_not1overweight_no_cuts',pair_muon_track_info)
+# np.save('single_muon_track_info_not1overweight',single_muon_track_info)
 
 

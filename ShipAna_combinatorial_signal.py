@@ -643,12 +643,14 @@ for events in sTree:
 		nmeas = fitStatus.getNdf()
 		# if not fitStatus.isFitConverged() : continue
 		# if nmeas < measCut: continue
-		if nmeas < 0: continue #there is a -1E99 value - this breaks stuff
+		if nmeas < 25: continue #there is a -1E99 value - this breaks stuff
 		# fittedTracks.append(atrack)
 		chi2 = fitStatus.getChi2()
 		print(nmeas)
 		prob = ROOT.TMath.Prob(chi2,int(nmeas))
 		rchi2 = chi2/nmeas
+		if rchi2 > 25: continue
+		if rchi2 < 0: continue
 		fittedTracks.append(atrack)
 		fittedState = atrack.getFittedState()
 		list_of_fitted_states = np.append(list_of_fitted_states, fittedState)
@@ -679,6 +681,8 @@ for events in sTree:
 		dist = ROOT.TMath.Sqrt(dist)
 		single_muon_track_info = np.append(single_muon_track_info, [[weight, nmeas, rchi2, P, Px, Py, Pz]], axis=0)
 
+
+print(np.shape(single_muon_track_info))
 np.save('pair_muon_track_info_signal',pair_muon_track_info)
 np.save('single_muon_track_info_signal',single_muon_track_info)
 

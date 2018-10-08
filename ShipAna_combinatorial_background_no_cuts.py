@@ -670,25 +670,25 @@ for events in sTree:
 # quit()
 print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
 
-delete_this = np.where(single_muon_track_info[:,1] < 25)
-single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
-fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
-list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+# delete_this = np.where(single_muon_track_info[:,1] > 25)
+# single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+# fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+# list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
 
-delete_this = np.where(single_muon_track_info[:,2] > 25)
-single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
-fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
-list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+# delete_this = np.where(single_muon_track_info[:,2] > 25)
+# single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+# fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+# list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
 
-delete_this = np.where(single_muon_track_info[:,2] < 0)
-single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
-fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
-list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
-print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
-delete_this = np.where(single_muon_track_info[:,7] == 0)
-single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
-fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
-list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+# delete_this = np.where(single_muon_track_info[:,2] < 0)
+# single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+# fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+# list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
+
+# delete_this = np.where(single_muon_track_info[:,7] == 0)
+# single_muon_track_info = np.delete(single_muon_track_info, delete_this,axis=0)
+# fittedTracks = np.delete(fittedTracks, delete_this,axis=0)
+# list_of_fitted_states = np.delete(list_of_fitted_states, delete_this,axis=0)
 
 print(np.shape(fittedTracks), np.sum(single_muon_track_info[:,0]), np.shape(list_of_fitted_states))
 # quit()
@@ -705,7 +705,7 @@ counting = 0
 # vtx_z_list = np.empty(0)
 # Ip_list = np.empty(0)
 
-pair_muon_track_info = np.empty((0,8))
+pair_muon_track_info = np.empty((0,12))
 
 # weights_list_2 = np.empty(0)
 for i in range(0, len(list_of_fitted_states)):
@@ -774,14 +774,14 @@ for i in range(0, len(list_of_fitted_states)):
 		# vtx_z_list = np.append(vtx_z_list, zv)
 		# Ip_list = np.append(Ip_list, dist)
 
-		pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom, fid, mom_i_mag, mom_j_mag]],axis=0)
+		pair_muon_track_info = np.append(pair_muon_track_info, [[weight, doca, zv, dist, pair_mom, fid, mom_i_mag, mom_j_mag,single_muon_track_info[i][1],single_muon_track_info[j][1],single_muon_track_info[i][2],single_muon_track_info[j][2]]],axis=0)
 
 		counting += 1
 		if counting%1000==0:
 			print(counting)
 
 
-np.save('pair_muon_track_info_not1overweight',pair_muon_track_info)
-np.save('single_muon_track_info_not1overweight',single_muon_track_info)
+np.save('pair_muon_track_info_not1overweight_no_cuts',pair_muon_track_info)
+# np.save('single_muon_track_info_not1overweight',single_muon_track_info)
 
 
